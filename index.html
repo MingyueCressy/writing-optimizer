@@ -55,6 +55,7 @@
   #content p.salutation{margin-bottom:12px}
   #content p.closing{margin:0 0 4px}
   .run{position:relative;cursor:pointer;border-radius:2px}
+  .run.pend{background:rgba(201,153,46,.28);box-shadow:0 0 0 1.5px #c9992e}
 
   .mk-wave{text-decoration:underline wavy;text-decoration-thickness:1.7px;text-underline-offset:5px}
   .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
@@ -267,6 +268,7 @@ function colorFromLegacy(t){return ({error:'#d3232f',grammar:'#e08a00',good:'#b7
 
 function render(){
   const M=DATA.meta;
+  pendStart=null;
   document.getElementById('pTitle').textContent=M.title;
   document.getElementById('pTitle2').textContent=M.title2||'';
   document.getElementById('pSub').textContent=M.subtitle+'　'+M.source;
@@ -404,7 +406,7 @@ function openSwatch(shapeKey, anchorEl){
   sw.style.top=Math.max(8,Math.min(window.innerHeight-sw.offsetHeight-10,r.top))+'px';
   sw.style.left=Math.max(8,r.left-sw.offsetWidth-8)+'px';
   sw.querySelectorAll('.swatch-dot').forEach(dot=>{
-    dot.onclick=(e)=>{e.stopPropagation();activeColor[shapeKey]=dot.dataset.c;activeShape=shapeKey;sw.classList.remove('show');hint(`${s.lb}（${colorName(dot.dataset.c)}）：点词或划选文字即可标记`);buildTools();};
+    dot.onclick=(e)=>{e.stopPropagation();activeColor[shapeKey]=dot.dataset.c;activeShape=shapeKey;sw.classList.remove('show');clearPendStart();hint(`${s.lb}（${colorName(dot.dataset.c)}）：点首词再点尾词定范围，或直接划选`);buildTools();};
   });
 }
 function colorName(c){return {'#d3232f':'红','#e08a00':'橙','#2e9e4f':'绿','#2f6fd0':'蓝','#7b5cc4':'紫','#ffe066':'黄','#b7f0b1':'浅绿','#a8d8ff':'浅蓝','#ffc2d1':'粉','#2b2721':'黑'}[c]||c;}
@@ -414,6 +416,7 @@ document.getElementById('swatch').addEventListener('click',e=>e.stopPropagation(
 /* 拖选用「浏览器原生 Selection」→ 映射成段落内字符偏移，不受 span 边界限制 */
 let drag=null;
 let suppressClick=false;
+let pendStart=null;   // B(a) 首尾点选：已设的起点 {pid,s,e}
 
 // 把 DOM (node,offset) 换算成段落内绝对字符偏移
 function charOffset(p, node, offset){
@@ -454,14 +457,38 @@ document.addEventListener('mouseup', ev=>{
   if(!drag) return;
   const d=drag; drag=null;
   const hadSel = window.getSelection() && !window.getSelection().isCollapsed;
-  if(!hadSel){ return; } // 没拖出选区 → 交给 click 处理单点
+  if(!hadSel){ return; } // 没拖出选区 → 交给 click 处理（单点/首尾选）
   const off=selOffsets();
   if(!off||off.e<=off.s) return;
   suppressClick=true;
+  clearPendStart();
   // 清掉原生选区（避免蓝色高亮残留）
   window.getSelection().removeAllRanges();
   applyRange(off.pid, off.s, off.e);
 });
+
+/* ===== A：触屏长按拖选 —— selectionchange 检测落定，自动激活 ===== */
+let selTimer=null;
+document.addEventListener('selectionchange', ()=>{
+  if(viewing||draft||!activeShape) return;
+  if(drag) return;                       // 桌面 mousedown 进行中，交给 mouseup
+  if(document.body.classList.contains('locked')) return;
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed){ return; }
+  // 选区稳定 ~450ms 后激活（触屏松手后浏览器选区保持）
+  clearTimeout(selTimer);
+  selTimer=setTimeout(()=>{
+    if(drag) return;
+    const sel2=window.getSelection();
+    if(!sel2||sel2.rangeCount===0||sel2.isCollapsed) return;
+    const off=selOffsets();
+    if(!off||off.e<=off.s) return;
+    clearPendStart();
+    sel2.removeAllRanges();
+    applyRange(off.pid, off.s, off.e);
+  }, 450);
+});
+
 function applyRange(pid, s, e){
   if(!paraMarks[pid]) paraMarks[pid]=[];
   const mk={id:'m'+(sid++), start:s, end:e, shape:activeShape, color:activeColor[activeShape]||DEF_COLOR[activeShape], note:''};
@@ -470,11 +497,15 @@ function applyRange(pid, s, e){
   rerenderAndDraw();
   openEditor(pid, mk, true);
 }
+// B(a)：清起点
+function clearPendStart(){
+  if(pendStart){ pendStart=null; document.querySelectorAll('.run.pend').forEach(r=>r.classList.remove('pend')); }
+}
 
 document.getElementById('content').addEventListener('click', e=>{
   if(suppressClick){ suppressClick=false; return; }
   const span=e.target.closest('.run');
-  if(!span){ hideAnno(); return; }
+  if(!span){ hideAnno(); clearPendStart(); return; }
   const pid=span.dataset.pid;
   if(viewing||draft){ handleViewClick(pid, span); return; }
   handleEditClick(pid, span);
@@ -483,15 +514,41 @@ document.getElementById('content').addEventListener('click', e=>{
 function handleEditClick(pid, span){
   const s=+span.dataset.start, e=+span.dataset.end;
   const hits=findMarks(pid, s, e);
-  if(hits.length===0){
-    if(!activeShape){ hint('先在右侧选一个标记工具'); return; }
-    return createMark(pid, s, e);
+
+  // ===== B(a) 首尾点选：有工具在手时，两次点击定一个范围 =====
+  if(activeShape){
+    const exact=hits.find(m=>m.start===s&&m.end===e);
+    if(hits.length>0 && !exact){
+      // 点在已有标记内部（非完全重合）→ 仍走首尾逻辑，允许框内圈词
+    }
+    if(!pendStart){
+      // 第一次点击 → 设起点（提示再点结尾）
+      pendStart={pid, s, e};
+      span.classList.add('pend');
+      hint('已设起点「'+span.textContent+'」，再点一个词确定范围结尾');
+      return;
+    }
+    if(pendStart.pid!==pid){
+      // 跨段：重设起点
+      clearPendStart(); pendStart={pid, s, e}; span.classList.add('pend');
+      hint('已设起点「'+span.textContent+'」，再点一个词确定范围结尾');
+      return;
+    }
+    if(pendStart.s===s && pendStart.e===e){
+      // 第二次点了同一个词 → 取消起点
+      clearPendStart();
+      hint('已取消起点');
+      return;
+    }
+    // 第二次点击 → 用首尾包裹成范围
+    const a=Math.min(pendStart.s, s), b=Math.max(pendStart.e, e);
+    clearPendStart();
+    return applyRange(pid, a, b);
   }
-  // 有工具在手：若最内层标记没有“完全相同”覆盖该 span，允许继续加新标记（支持框内圈词）
+
+  // ===== 无工具在手：点已标记处 → 编辑器/拾取器 =====
+  if(hits.length===0){ hint('先在右侧选一个标记工具'); return; }
   const exact=hits.find(m=>m.start===s&&m.end===e);
-  if(activeShape && !exact){
-    return createMark(pid, s, e);
-  }
   if(hits.length===1){ openEditor(pid, hits[0]); return; }
   openPicker(pid, s, e, hits);
 }
