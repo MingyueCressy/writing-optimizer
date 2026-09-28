@@ -352,13 +352,17 @@ function drawOverlays(){
     const pid=p.dataset.pid;
     (paraMarks[pid]||[]).forEach(m=>{
       if(m.shape!=='circle'&&m.shape!=='box') return;
-      segmentsByOffset(p, m.start, m.end).forEach(rect=>{
-        const ov=document.createElement('div'); ov.className='overlay';
-        ov.style.left=rect.x+'px'; ov.style.top=rect.y+'px'; ov.style.width=rect.w+'px'; ov.style.height=rect.h+'px';
-        if(m.shape==='box') ov.innerHTML=`<svg width="${rect.w}" height="${rect.h}" style="overflow:visible"><rect x="1" y="1" width="${Math.max(2,rect.w-2)}" height="${Math.max(2,rect.h-2)}" rx="3" fill="none" stroke="${m.color}"/></svg>`;
-        else ov.innerHTML=`<svg width="${rect.w}" height="${rect.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(rect.w,rect.h)}"/></svg>`;
-        p.appendChild(ov);
-      });
+      const rects=segmentsByOffset(p, m.start, m.end);
+      if(!rects.length) return;
+      // 圆圈/方框：合并所有碎片为一个大包围盒（整段框一次，而非每词一个）
+      const minX=Math.min(...rects.map(r=>r.x)), minY=Math.min(...rects.map(r=>r.y));
+      const maxX=Math.max(...rects.map(r=>r.x+r.w)), maxY=Math.max(...rects.map(r=>r.y+r.h));
+      const bb={x:minX, y:minY, w:maxX-minX, h:maxY-minY};
+      const ov=document.createElement('div'); ov.className='overlay';
+      ov.style.left=bb.x+'px'; ov.style.top=bb.y+'px'; ov.style.width=bb.w+'px'; ov.style.height=bb.h+'px';
+      if(m.shape==='box') ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><rect x="1" y="1" width="${Math.max(2,bb.w-2)}" height="${Math.max(2,bb.h-2)}" rx="3" fill="none" stroke="${m.color}"/></svg>`;
+      else ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(bb.w,bb.h)}"/></svg>`;
+      p.appendChild(ov);
     });
   });
 }
@@ -567,13 +571,15 @@ function wordRangeAt(text, pos){
 
 function handleEditClick(pid, span, ev){
   let s=+span.dataset.start, e=+span.dataset.end;
-  // 词级 span 已切好；若点到空白 token，则忽略
   const tok=plainOf(pid).slice(s,e);
-  if(/^\s*$/.test(tok)){ return; }
+  // 点到空白/标点 token：先看它是否落在某个标记范围内 → 是则查该标记
+  // 否则忽略（无工具时）；有工具时以该位置为准
+  const isBlank=/^\s*$/.test(tok);
   const hits=findMarks(pid, s, e);
 
   // ===== B(a) 首尾点选：有工具在手时，两次点击定一个范围 =====
   if(activeShape){
+    if(isBlank && !pendStart) return;   // 空白不能作为起点
     if(!pendStart){
       pendStart={pid, s, e};
       paintPend(pid, s, e);
@@ -596,7 +602,7 @@ function handleEditClick(pid, span, ev){
   }
 
   // ===== 无工具在手：点已标记处 → 编辑器/拾取器 =====
-  if(hits.length===0){ hint('先在右侧选一个标记工具'); return; }
+  if(hits.length===0){ if(!isBlank) hint('先在右侧选一个标记工具'); return; }
   if(hits.length===1){ openEditor(pid, hits[0]); return; }
   openPicker(pid, s, e, hits);
 }
