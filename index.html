@@ -398,43 +398,60 @@ function colorName(c){return {'#d3232f':'红','#e08a00':'橙','#2e9e4f':'绿','#
 document.addEventListener('click',()=>document.getElementById('swatch').classList.remove('show'));
 document.getElementById('swatch').addEventListener('click',e=>e.stopPropagation());
 /* ==================== 交互 ==================== */
+/* 拖选用「浏览器原生 Selection」→ 映射成段落内字符偏移，不受 span 边界限制 */
 let drag=null;
+let suppressClick=false;
+
+// 把 DOM (node,offset) 换算成段落内绝对字符偏移
+function charOffset(p, node, offset){
+  // 遍历段落内所有文本节点，累计长度，定位到 node
+  const walker=document.createTreeWalker(p, NodeFilter.SHOW_TEXT, null);
+  let acc=0, n;
+  while((n=walker.nextNode())){
+    if(n===node) return acc+offset;
+    acc+=n.length;
+  }
+  return null;
+}
+// 取当前原生选区的段落内起止偏移（要求起止在同一段落内）
+function selOffsets(){
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed) return null;
+  const r=sel.getRangeAt(0);
+  let sp=r.startContainer, ep=r.endContainer;
+  if(sp.nodeType!==3) sp=sp.firstChild;
+  if(ep.nodeType!==3) ep=ep.firstChild;
+  if(!sp||!ep) return null;
+  const spEl=sp.parentElement.closest('.run'), epEl=ep.parentElement.closest('.run');
+  if(!spEl||!epEl) return null;
+  const p=spEl.closest('p'); if(!p||epEl.closest('p')!==p) return null; // 同段
+  const pid=p.dataset.pid;
+  const a=charOffset(p, sp, r.startOffset), b=charOffset(p, ep, r.endOffset);
+  if(a===null||b===null) return null;
+  return {pid, s:Math.min(a,b), e:Math.max(a,b)};
+}
 
 document.getElementById('content').addEventListener('mousedown', e=>{
   if(viewing||draft) return;
   const span=e.target.closest('.run');
   if(!span||!activeShape) return;
-  drag={pid:span.dataset.pid, s:+span.dataset.start, e:+span.dataset.end, moved:false};
-});
-document.getElementById('content').addEventListener('mousemove', ev=>{
-  if(!drag) return;
-  const span=ev.target.closest('.run');
-  if(!span||span.dataset.pid!==drag.pid) return;
-  const s=+span.dataset.start, en=+span.dataset.end;
-  drag.e=en; drag.moved=true;
-  paintSel(drag.pid, Math.min(drag.s,en), Math.max(drag.e,s));
+  drag={pid:span.dataset.pid, moved:false};
 });
 document.addEventListener('mouseup', ev=>{
   if(!drag) return;
-  const d=drag; drag=null; clearSel();
-  if(!d.moved){ return; } // 交给 click 处理单点
-  if(d.e===undefined) return;
-  const s=Math.min(d.s,d.e), e2=Math.max(d.e,d.s);
-  if(e2<=s) return;
+  const d=drag; drag=null;
+  const hadSel = window.getSelection() && !window.getSelection().isCollapsed;
+  if(!hadSel){ return; } // 没拖出选区 → 交给 click 处理单点
+  const off=selOffsets();
+  if(!off||off.e<=off.s) return;
   suppressClick=true;
-  applyRange(d.pid, s, e2);
+  // 清掉原生选区（避免蓝色高亮残留）
+  window.getSelection().removeAllRanges();
+  applyRange(off.pid, off.s, off.e);
 });
-let suppressClick=false;
-function paintSel(pid, s, e){
-  clearSel();
-  document.querySelectorAll(`p[data-pid="${pid}"] .run`).forEach(r=>{
-    const rs=+r.dataset.start, re=+r.dataset.end;
-    if(re<=s||rs>=e) return;
-    r.classList.add('sel');
-  });
-}
 function clearSel(){ document.querySelectorAll('.run.sel').forEach(r=>r.classList.remove('sel')); }
 function applyRange(pid, s, e){
+  if(!paraMarks[pid]) paraMarks[pid]=[];
   const mk={id:'m'+(sid++), start:s, end:e, shape:activeShape, color:activeColor[activeShape]||DEF_COLOR[activeShape], note:''};
   paraMarks[pid].push(mk);
   history.push({type:'add', pid, ids:[mk.id]});
