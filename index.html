@@ -16,12 +16,12 @@
   #app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 
   #stage{flex:1;display:flex;flex-direction:column;padding:0;overflow:auto;position:relative}
-  #viewToggle{position:fixed;top:10px;right:12px;z-index:60;
+  #viewToggle{position:fixed;bottom:18px;left:50%;transform:translateX(calc(-50% + var(--vt-shift,0px)));z-index:60;
     display:flex;align-items:center;gap:6px;background:rgba(28,32,39,.92);
     border:1px solid #3a424e;border-radius:20px;padding:6px 12px 6px 10px;
     color:#e7d9b4;font-size:12px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);
     transition:.15s;user-select:none}
-  #viewToggle:hover{background:#3c4653;transform:translateY(-1px)}
+  #viewToggle:hover{background:#3c4653;transform:translateX(calc(-50% + var(--vt-shift,0px))) translateY(-1px)}
   #viewToggle .vic{font-size:15px;line-height:1}
 
   #paperWrap{display:flex;flex-direction:column;align-items:stretch;width:100%;flex:1;min-height:100%}
@@ -156,9 +156,6 @@
 <div id="app">
   <div id="stage">
     <div id="paperWrap">
-      <div id="viewToggle" title="切换编辑 / 阅读视角">
-        <span class="vic" id="vtIcon">✏️</span><span id="vtLabel">切到阅读</span>
-      </div>
       <div id="paper">
         <div id="paperHead">
           <div id="headRow1">
@@ -176,6 +173,9 @@
         </div>
         <div id="content"></div>
       </div>
+    </div>
+    <div id="viewToggle" title="切换编辑 / 阅读视角">
+      <span class="vic" id="vtIcon">✏️</span><span id="vtLabel">切到阅读</span>
     </div>
   </div>
   <div id="tools"></div>
@@ -289,7 +289,7 @@ function render(){
   });
   document.body.classList.toggle('viewing', viewing);
   document.body.classList.toggle('draft', draft);
-  buildTools(); syncToggle();
+  buildTools(); syncToggle(); positionToggle();
   requestAnimationFrame(()=>drawOverlays());
 }
 function syncToggle(){
@@ -727,7 +727,13 @@ document.getElementById('viewToggle').onclick=()=>{
   viewing=!viewing; if(viewing){activeShape=null;hideAnno();}
   render(); hint(viewing?'已进入阅读视角（受众）':'已进入编辑视角（批注者）');
 };
-window.addEventListener('resize', ()=>requestAnimationFrame(drawOverlays));
+window.addEventListener('resize', ()=>{requestAnimationFrame(drawOverlays);positionToggle();});
+// 底部居中按钮：编辑态避开右侧工具栏（62px），阅读态整宽居中
+function positionToggle(){
+  const viewingNow=document.body.classList.contains('viewing');
+  const shift=viewingNow?'0px':'-31px'; // 工具栏半宽
+  document.documentElement.style.setProperty('--vt-shift', shift);
+}
 
 /* ==================== 启动 ==================== */
 const EMBED=true;
