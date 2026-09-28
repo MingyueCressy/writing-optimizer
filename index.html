@@ -6,55 +6,37 @@
 <title>作文批阅工作台</title>
 <style>
   :root{
-    --paper:#f6f0e2;
-    --paper-line:#e3d9c4;
-    --ink:#2b2721;
-    --ink-soft:#6b6459;
-    --tool-bg:#262b33;
-    --tool-bg2:#1c2027;
-    --tool-line:#3a424e;
-    --accent:#c9992e;
+    --paper:#f6f0e2; --paper-line:#e3d9c4; --ink:#2b2721; --ink-soft:#6b6459;
+    --tool-bg:#262b33; --tool-bg2:#1c2027; --tool-line:#3a424e; --accent:#c9992e;
     --font-serif: Georgia, "Times New Roman", "Songti SC", serif;
     --font-note: "Source Han Sans SC","思源黑体","PingFang SC","Microsoft YaHei",sans-serif;
-    --font-note-en: "Times New Roman", Times, serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:#101318;font-family:var(--font-note);color:var(--ink)}
   #app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 
-  /* ============ 左：纸张区 ============ */
-  #stage{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;position:relative}
-
-  /* 右上角视角切换按钮（浮在纸张外、舞台右上） */
-  #viewToggle{position:absolute;top:10px;right:12px;z-index:60;
+  #stage{flex:1;display:flex;justify-content:center;padding:18px;overflow:auto;position:relative}
+  #viewToggle{position:sticky;top:10px;right:12px;float:right;z-index:60;
     display:flex;align-items:center;gap:6px;background:rgba(28,32,39,.92);
     border:1px solid #3a424e;border-radius:20px;padding:6px 12px 6px 10px;
-    color:#e7d9b4;font-size:12px;font-family:var(--font-note);cursor:pointer;
-    box-shadow:0 4px 16px rgba(0,0,0,.4);transition:.15s;user-select:none}
+    color:#e7d9b4;font-size:12px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);
+    transition:.15s;user-select:none;margin-left:auto}
   #viewToggle:hover{background:#3c4653;transform:translateY(-1px)}
   #viewToggle .vic{font-size:15px;line-height:1}
 
+  #paperWrap{display:flex;flex-direction:column;align-items:center;width:100%}
   #paper{
-    position:relative;
-    aspect-ratio:9/16;
-    height:min(100%, 1200px);
-    max-width:100%;
-    background:
-      linear-gradient(180deg,#f8f3e7 0%,var(--paper) 100%);
-    border-radius:6px;
-    box-shadow:0 18px 60px rgba(0,0,0,.55), 0 2px 0 rgba(255,255,255,.5) inset;
-    padding:46px 44px 40px;
-    display:flex;flex-direction:column;
-    overflow:hidden;
+    position:relative;width:min(430px,100%);
+    background:linear-gradient(180deg,#f8f3e7 0%,var(--paper) 100%);
+    border-radius:6px;box-shadow:0 18px 60px rgba(0,0,0,.55);
+    padding:46px 40px 48px;overflow:visible;
   }
-  #paper::after{ /* 纸纹 */
-    content:"";position:absolute;inset:0;pointer-events:none;border-radius:6px;
+  #paper::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:6px;
     background-image:radial-gradient(rgba(0,0,0,.025) 1px, transparent 1px);
-    background-size:3px 3px;mix-blend-mode:multiply;opacity:.5;
-  }
-  #paperHead{flex:0 0 auto;border-bottom:1.5px solid var(--paper-line);padding-bottom:12px;margin-bottom:16px;position:relative;z-index:2}
-  #pTitle{font-family:var(--font-serif);font-size:19px;font-weight:700;letter-spacing:.2px;color:#241f18}
-  #pSub{font-family:var(--font-note);font-size:11.5px;color:var(--ink-soft);margin-top:5px;letter-spacing:.3px}
+    background-size:3px 3px;mix-blend-mode:multiply;opacity:.5}
+  #paperHead{position:relative;z-index:2;border-bottom:1.5px solid var(--paper-line);padding-bottom:12px;margin-bottom:18px}
+  #pTitle{font-family:var(--font-serif);font-size:19px;font-weight:700;color:#241f18;padding-right:120px}
+  #pSub{font-size:11.5px;color:var(--ink-soft);margin-top:5px;padding-right:120px}
   #pScore{position:absolute;right:0;top:0;text-align:right}
   #pScore.clickable{cursor:pointer}
   #pScore.clickable:hover b{text-decoration:underline}
@@ -63,76 +45,81 @@
   #pScore .tap{display:none;font-size:9px;color:#a5641c;margin-top:2px}
   body.viewing #pScore .tap{display:block}
 
-  #content{flex:1 1 auto;overflow:hidden;position:relative;z-index:2;font-family:var(--font-serif);font-size:17.5px;line-height:2.05;color:var(--ink);padding-right:6px}
-  #content p{margin:0 0 14px}
+  #content{position:relative;z-index:2;font-family:var(--font-serif);font-size:17.5px;line-height:2.15;color:var(--ink)}
+  #content p{margin:0 0 16px;position:relative}
   #content p.salutation{margin-bottom:12px}
   #content p.closing{margin:0 0 4px}
-  .seg{position:relative;border-radius:3px;padding:1px 2px;cursor:pointer;transition:background .12s}
-  .seg:hover{background:rgba(201,153,46,.14)}
-  .seg[data-t="error"]{color:#c31f2b;text-decoration:underline wavy #d3232f 1.5px;text-underline-offset:4px}
-  .seg[data-t="grammar"]{text-decoration:underline wavy #e08a00 1.5px;text-underline-offset:4px}
-  .seg[data-t="good"]{background:rgba(46,158,79,.24);border-radius:3px}
-  .seg[data-t="fatal"]{background:rgba(255,77,46,.16);text-decoration:underline wavy #ff4d2e 2px;text-underline-offset:4px}
-  .seg[data-t="template"]{border:1px dashed #2f6fd0;border-radius:4px;background:rgba(47,111,208,.07)}
-  .seg[data-t="note"]{text-decoration:underline dotted #7b5cc4 1.5px;text-underline-offset:4px}
-  .seg.seg-active{box-shadow:0 0 0 2px rgba(201,153,46,.55);border-radius:3px}
-  .draft .seg{all:unset}          /* 清样版：去掉所有标记 */
-  .draft .seg{cursor:default}
+  .run{position:relative;cursor:pointer;border-radius:2px}
+  .run:hover{background:rgba(201,153,46,.16)}
+  .run.sel{background:rgba(201,153,46,.3)}
 
-  /* 批注卡 */
-  .anno{position:absolute;z-index:20;max-width:250px;
-    background:#fffdf6;border:1px solid #e0d6bd;border-left:4px solid #999;
-    border-radius:5px;padding:8px 10px;font-family:var(--font-note);font-size:12px;
-    line-height:1.6;color:#332e26;box-shadow:0 6px 22px rgba(0,0,0,.22);pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s}
+  .mk-wave{text-decoration:underline wavy;text-decoration-thickness:1.7px;text-underline-offset:5px}
+  .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
+  .mk-double{text-decoration:underline double;text-decoration-thickness:3px;text-underline-offset:5px}
+
+  .overlay{position:absolute;z-index:1;pointer-events:none}
+  .mk-circle-svg path{fill:none;stroke-width:2.2;stroke-linecap:round}
+  .mk-box-svg rect{fill:none;stroke-width:1.8;stroke-linejoin:round}
+  .draft .run{background:none!important}
+  .draft .overlay{display:none}
+  .draft .mk-wave,.draft .mk-underline,.draft .mk-double{text-decoration:none!important}
+  .draft .mk-highlight-span{background:none!important}
+
+  .anno{position:absolute;z-index:40;max-width:260px;
+    background:#fffdf6;border:1px solid #e0d6bd;border-left:4px solid #999;border-radius:6px;
+    padding:8px 11px;font-size:12px;line-height:1.65;color:#332e26;
+    box-shadow:0 8px 26px rgba(0,0,0,.28);pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s}
   .anno.show{opacity:1;transform:none}
   .anno .cite{font-family:var(--font-serif);font-style:italic;color:#a5641c;display:block;margin-bottom:3px;font-size:11.5px}
-  .anno[data-t="error"]{border-left-color:#d3232f}
-  .anno[data-t="grammar"]{border-left-color:#e08a00}
-  .anno[data-t="good"]{border-left-color:#2e9e4f}
-  .anno[data-t="fatal"]{border-left-color:#ff4d2e}
-  .anno[data-t="template"]{border-left-color:#2f6fd0}
-  .anno[data-t="note"]{border-left-color:#7b5cc4}
-  .anno .tail{position:absolute;width:0;height:0;border:6px solid transparent}
-  .anno.tmpl{position:static;opacity:1;transform:none;max-width:none;margin:8px 0 0;box-shadow:none;background:rgba(47,111,208,.05)}
 
-  /* 页码 */
-  #pager{flex:0 0 auto;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:14px;font-size:12px;color:var(--ink-soft);padding-top:8px;border-top:1.5px solid var(--paper-line);margin-top:10px}
-  #pager button{border:1px solid var(--paper-line);background:#fbf7ec;border-radius:4px;padding:3px 10px;font-family:var(--font-note);font-size:12px;color:var(--ink-soft);cursor:pointer}
-  #pager button:disabled{opacity:.35;cursor:default}
-
-  /* ============ 右：工具列 ============ */
-  #tools{flex:0 0 78px;background:linear-gradient(180deg,var(--tool-bg) 0%,var(--tool-bg2) 100%);
+  #tools{flex:0 0 84px;background:linear-gradient(180deg,var(--tool-bg) 0%,var(--tool-bg2) 100%);
     border-left:1px solid #0c0f13;display:flex;flex-direction:column;align-items:center;
-    padding:14px 8px;gap:8px;overflow-y:auto}
-  .tool{width:60px;display:flex;flex-direction:column;align-items:center;gap:3px;
-    background:#313845;border:1px solid var(--tool-line);border-radius:8px;padding:8px 2px 6px;
-    color:#cfd6e0;cursor:pointer;transition:.13s;user-select:none}
+    padding:12px 8px;gap:7px;overflow-y:auto}
+  .tool{width:66px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:#313845;border:1px solid var(--tool-line);border-radius:8px;padding:7px 2px 5px;
+    color:#cfd6e0;cursor:pointer;transition:.13s;user-select:none;position:relative}
   .tool:hover{background:#3c4653;transform:translateY(-1px)}
   .tool.active{background:var(--accent);border-color:#e8bd57;color:#1c1508;box-shadow:0 0 0 2px rgba(201,153,46,.35)}
-  .tool .ic{font-size:17px;line-height:1}
-  .tool .lb{font-size:9.5px;letter-spacing:.2px;white-space:nowrap}
-  .tool .sw{width:16px;height:16px;border-radius:50%;border:2px solid #fff2}
-  .tsep{width:44px;height:1px;background:var(--tool-line);margin:2px 0}
+  .tool .ic{font-size:17px;line-height:1;height:20px;display:flex;align-items:center}
+  .tool .lb{font-size:9px;letter-spacing:.2px;white-space:nowrap}
+  .tool .dot{width:10px;height:10px;border-radius:50%;border:1.5px solid #ffffff66;margin-top:1px}
+  .tsep{width:48px;height:1px;background:var(--tool-line);margin:3px 0}
   .tool.mini .ic{font-size:15px}
-  .tool.off{opacity:.45}
+  .tlabel{font-size:9px;color:#8792a3;letter-spacing:1px;margin:2px 0 -2px;font-weight:700}
 
-  /* 面包屑提示 */
+  #swatch{position:fixed;z-index:120;display:none;background:#2b323d;border:1px solid #4a5464;
+    border-radius:10px;padding:9px 10px;box-shadow:0 10px 34px rgba(0,0,0,.6)}
+  #swatch.show{display:block}
+  #swatch .swTitle{color:#cfd6e0;font-size:10.5px;letter-spacing:.5px;margin-bottom:7px}
+  #swatch .swRow{display:flex;gap:8px}
+  .swatch-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid #ffffff33;transition:.12s}
+  .swatch-dot:hover{transform:scale(1.14);border-color:#fff}
+  .swatch-dot.on{border-color:#fff;box-shadow:0 0 0 2px #fff8}
+
   #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
     background:rgba(28,32,39,.94);color:#e7d9b4;font-size:12px;padding:7px 14px;border-radius:20px;
-    border:1px solid #3a424e;pointer-events:none;opacity:0;transition:opacity .2s;z-index:99;font-family:var(--font-note)}
+    border:1px solid #3a424e;pointer-events:none;opacity:0;transition:opacity .2s;z-index:199}
   #hint.show{opacity:1}
 
-  /* 弹层：批注输入 / 汇总 */
   .modal{position:fixed;inset:0;background:rgba(8,10,13,.6);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
   .modal.show{display:flex}
-  .modal .box{background:#fbf7ec;border-radius:8px;width:min(560px,94vw);max-height:86vh;overflow:auto;padding:20px;font-family:var(--font-note);box-shadow:0 20px 70px rgba(0,0,0,.6)}
+  .modal .box{background:#fbf7ec;border-radius:8px;width:min(560px,94vw);max-height:86vh;overflow:auto;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.6)}
   .modal h3{margin:0 0 4px;font-family:var(--font-serif);font-size:17px;color:#241f18}
   .modal .sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:14px}
-  .modal label{display:block;font-size:12px;color:var(--ink-soft);margin:10px 0 4px}
-  .modal textarea{width:100%;min-height:80px;border:1px solid #ddd2b8;border-radius:5px;padding:8px;font-family:var(--font-note);font-size:13px;line-height:1.6;resize:vertical;background:#fffdf7;color:#2b2721}
-  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-  .modal button{border:1px solid #d6cbaF;background:#f2ead6;border-radius:5px;padding:7px 16px;font-size:12.5px;cursor:pointer;font-family:var(--font-note)}
+  .modal .mrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .mbtn{border:1px solid #d6cbaf;background:#f2ead6;border-radius:6px;padding:6px 11px;font-size:12px;cursor:pointer;color:#3a342a;display:flex;align-items:center;gap:5px}
+  .mbtn:hover{background:#eae0c8}
+  .mbtn.on{background:var(--accent);border-color:#b8882a;color:#1c1508;font-weight:700}
+  .modal label{display:block;font-size:12px;color:var(--ink-soft);margin:14px 0 4px}
+  .modal textarea{width:100%;min-height:74px;border:1px solid #ddd2b8;border-radius:5px;padding:8px;font-size:13px;line-height:1.6;resize:vertical;background:#fffdf7;color:#2b2721;font-family:var(--font-note)}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .modal button{border:1px solid #d6cbaf;background:#f2ead6;border-radius:5px;padding:8px 16px;font-size:12.5px;cursor:pointer}
   .modal button.primary{background:var(--accent);border-color:#b8882a;color:#1c1508;font-weight:600}
+  .modal button.danger{background:#f6ded9;border-color:#d9a79c;color:#a5362a}
+  .modal .quote{font-family:var(--font-serif);font-style:italic;background:#f3ecdb;border-radius:4px;padding:6px 9px;font-size:12.5px;color:#5a5142;margin-top:4px}
+  .palette{display:flex;gap:7px;flex-wrap:wrap}
+  .pdot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid #00000022}
+  .pdot.on{border-color:#8a6d1f;box-shadow:0 0 0 2px #c9992e88}
   .sumtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
   .sumtable td{border:1px solid #e3d9c4;padding:6px 8px;vertical-align:top}
   .sumtable td:first-child{width:74px;color:var(--ink-soft);background:#f3ecdb;font-weight:600}
@@ -143,427 +130,397 @@
   .dimlabel{font-size:11px;letter-spacing:1px;color:#a5641c;margin:14px 0 2px;font-weight:700}
 
   @media (max-width:560px){
-    #tools{flex-basis:64px;padding:10px 5px}
-    .tool{width:52px;padding:6px 1px 5px}
-    .tool .lb{font-size:8.5px}
-    #paper{padding:28px 22px 24px}
-    #content{font-size:15px;line-height:1.95}
+    #tools{flex-basis:70px;padding:10px 5px}
+    .tool{width:58px;padding:6px 1px 4px}
+    .tool .lb{font-size:8px}
+    #paper{padding:30px 22px 34px}
+    #content{font-size:15px;line-height:2.0}
   }
-
-  /* ========== 阅读（受众）视角 ========== */
   body.viewing #tools{display:none}
   body.viewing #viewToggle{color:#bfe3c4}
-  body.viewing .seg{cursor:pointer}
-  body.viewing .seg:hover{background:rgba(201,153,46,.12)}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="stage">
-    <div id="viewToggle" title="切换编辑 / 阅读视角">
-      <span class="vic" id="vtIcon">✏️</span>
-      <span id="vtLabel">切到阅读</span>
-    </div>
-    <div id="paper">
-      <div id="paperHead">
-        <div id="pTitle">加载中…</div>
-        <div id="pSub"></div>
-        <div id="pScore"></div>
+    <div id="paperWrap">
+      <div id="viewToggle" title="切换编辑 / 阅读视角">
+        <span class="vic" id="vtIcon">✏️</span><span id="vtLabel">切到阅读</span>
       </div>
-      <div id="content"></div>
-      <div id="pager">
-        <button id="prevP" disabled>◀</button>
-        <span id="pageInfo">1 / 1</span>
-        <button id="nextP" disabled>▶</button>
+      <div id="paper">
+        <div id="paperHead">
+          <div id="pTitle">加载中…</div>
+          <div id="pSub"></div>
+          <div id="pScore"></div>
+        </div>
+        <div id="content"></div>
       </div>
     </div>
   </div>
-
   <div id="tools"></div>
 </div>
 
 <div id="hint"></div>
+<div id="swatch"></div>
 
-<!-- 批注输入弹层 -->
-<div class="modal" id="inputModal">
+<div class="modal" id="editModal">
   <div class="box">
-    <h3 id="imTitle">添加批注</h3>
-    <div class="sub" id="imCite"></div>
-    <label>批注内容（可留空，只留标记）</label>
-    <textarea id="imText" placeholder="输入批注意见…"></textarea>
+    <h3 id="emTitle">编辑标记</h3>
+    <div class="sub" id="emCite"></div>
+    <div class="quote" id="emQuote"></div>
+    <label>形态</label>
+    <div class="mrow" id="emShapes"></div>
+    <label>颜色</label>
+    <div class="palette" id="emColors"></div>
+    <label>批注意见</label>
+    <textarea id="emText" placeholder="输入批注意见（可留空）…"></textarea>
     <div class="row">
-      <button id="imCancel">取消</button>
-      <button class="primary" id="imOk">确定</button>
+      <button class="danger" id="emDelete">删除标记</button>
+      <button id="emCancel">取消</button>
+      <button class="primary" id="emOk">确定</button>
     </div>
   </div>
 </div>
 
-<!-- 汇总弹层 -->
 <div class="modal" id="sumModal">
   <div class="box" id="sumBox"></div>
 </div>
 
-<script type="application/json" id="app-data">
-{
-  "meta": {
-    "title": "2025 考研英语（一）· 小作文（Part A 应用文）",
-    "subtitle": "回复邮件 ｜ 10 分 ｜ 约 100 词 ｜ 实际约 95 词",
-    "score": "7 / 10",
-    "scoreNote": "要点全覆盖、结构清晰；语言小错，无内容硬伤",
-    "source": "《考研英语万能模板.md》批阅基准",
-    "pages": 1
-  },
-  "legend": [
-    {
-      "key": "error",
-      "label": "错词圈",
-      "color": "#d3232f",
-      "desc": "拼写 / 用词错误"
-    },
-    {
-      "key": "grammar",
-      "label": "句法波浪",
-      "color": "#e08a00",
-      "desc": "语法 / 词性 / 搭配错"
-    },
-    {
-      "key": "good",
-      "label": "亮点高亮",
-      "color": "#2e9e4f",
-      "desc": "写得好的表达"
-    },
-    {
-      "key": "fatal",
-      "label": "硬伤标记",
-      "color": "#ff4d2e",
-      "desc": "内容矛盾等致命扣分"
-    },
-    {
-      "key": "template",
-      "label": "模板句式",
-      "color": "#2f6fd0",
-      "desc": "可套用的空壳句式"
-    },
-    {
-      "key": "note",
-      "label": "纯批注",
-      "color": "#7b5cc4",
-      "desc": "只挂意见，不改文字"
-    }
-  ],
-  "blocks": [
-    {
-      "type": "salutation",
-      "text": "Dear Paul,"
-    },
-    {
-      "type": "para",
-      "id": "p1",
-      "text": "To enhance students' [[grammar:capabilities to craft-making|capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making 或 capabilities to do craft-making。]] and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft [[grammar:demonstrate|词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。]] and willing to [[good:give a hand|地道，口语化恰当。]]"
-    },
-    {
-      "type": "para",
-      "id": "p2",
-      "text": "The [[error:craftmen|拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！]] will show [[good:paper-cutting and bamboo weaving|具体、加分，符合“介绍内容”要求。]] Of course, there are other activities on the playground. [[note:Let me keep a little secret for you|俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。]]"
-    },
-    {
-      "type": "para",
-      "id": "p3",
-      "text": "[[note:You are willing to give a hand. We are so grateful.|逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。]] Can you help prepare seats and test audio equipment? We will [[grammar:gather the school hall|缺介词 → gather at the school hall。]] at 2 p.m. this Friday."
-    },
-    {
-      "type": "para",
-      "id": "p4",
-      "text": "Looking forward to your reply."
-    },
-    {
-      "type": "closing",
-      "text": "[[error:Yours, sincerely|标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。]]"
-    },
-    {
-      "type": "closing",
-      "text": "Li Ming"
-    }
-  ],
-  "summary": {
-    "dims": [
-      {
-        "name": "内容要点",
-        "text": "两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"
-      },
-      {
-        "name": "语言",
-        "text": "小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making、gather the school hall；均为可自纠的常见错"
-      },
-      {
-        "name": "语域",
-        "text": "Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"
-      },
-      {
-        "name": "格式",
-        "text": "有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"
-      },
-      {
-        "name": "结构",
-        "text": "三段式清晰，缩进式格式可用 ✅"
-      }
-    ],
-    "priority": [
-      "语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in、gather at——熟悉即可全对",
-      "书信格式：Yours sincerely, 的标点规范",
-      "语域：俏皮表达换成实质内容（考试应用文求稳）"
-    ]
-  },
-  "recite": [
-    {
-      "wrong": "craftmen",
-      "right": "craftsmen（题干原文）"
-    },
-    {
-      "wrong": "the craft demonstrate",
-      "right": "the craft demonstration / the crafts"
-    },
-    {
-      "wrong": "capabilities to craft-making",
-      "right": "capabilities in craft-making"
-    },
-    {
-      "wrong": "gather the school hall",
-      "right": "gather at the school hall"
-    },
-    {
-      "wrong": "Yours, sincerely",
-      "right": "Yours sincerely,（中间无逗号、末尾逗号）"
-    }
-  ]
-}
-</script>
+<script type="application/json" id="app-data">{"meta":{"title":"2025 考研英语（一）· 小作文（Part A 应用文）","subtitle":"回复邮件 ｜ 10 分 ｜ 约 100 词 ｜ 实际约 95 词","score":"7 / 10","scoreNote":"要点全覆盖、结构清晰；语言小错，无内容硬伤","source":"《考研英语万能模板.md》批阅基准","pages":1},"legend":[{"key":"error","label":"错词圈","color":"#d3232f","desc":"拼写 / 用词错误"},{"key":"grammar","label":"句法波浪","color":"#e08a00","desc":"语法 / 词性 / 搭配错"},{"key":"good","label":"亮点高亮","color":"#2e9e4f","desc":"写得好的表达"},{"key":"fatal","label":"硬伤标记","color":"#ff4d2e","desc":"内容矛盾等致命扣分"},{"key":"template","label":"模板句式","color":"#2f6fd0","desc":"可套用的空壳句式"},{"key":"note","label":"纯批注","color":"#7b5cc4","desc":"只挂意见，不改文字"}],"blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","id":"p1","text":"[[template:To enhance students' capabilities to craft-making and enrich their extracurricular life|📌 模板句式命中（《万能模板》8.4 通知开法 ^tmpl-notice-open）：To enhance students' capabilities to ___ and enrich their extracurricular life, ___ will be held on ___ at ___。你这句几乎照空壳写的，是全篇最规范的句子——但中间有两个小错，见下方波浪。]] To enhance students' [[grammar:capabilities to craft-making|capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making 或 capabilities to do craft-making。]] and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft [[grammar:demonstrate|词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。]] and willing to [[good:give a hand|地道，口语化恰当。]]"},{"type":"para","id":"p2","text":"The [[error:craftmen|拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！]] will show [[good:paper-cutting and bamboo weaving|具体、加分，符合“介绍内容”要求。]] Of course, there are other activities on the playground. [[note:Let me keep a little secret for you|俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。]]"},{"type":"para","id":"p3","text":"[[note:You are willing to give a hand. We are so grateful.|逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。]] [[template:Can you help prepare seats and test audio equipment?|📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___.]] We will [[grammar:gather the school hall|缺介词 → gather at the school hall。]] at 2 p.m. this Friday."},{"type":"para","id":"p4","text":"[[template:Looking forward to your reply.|📌 标准结尾句式，全对。模板库 8.6 也推荐 I look forward to hearing from you.]]"},{"type":"closing","text":"[[error:Yours, sincerely|标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。]]"},{"type":"closing","text":"Li Ming"}],"summary":{"dims":[{"name":"内容要点","text":"两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"},{"name":"语言","text":"小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making、gather the school hall；均为可自纠的常见错"},{"name":"语域","text":"Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"},{"name":"格式","text":"有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"},{"name":"结构","text":"三段式清晰，缩进式格式可用 ✅"}],"priority":["语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in、gather at——熟悉即可全对","书信格式：Yours sincerely, 的标点规范","语域：俏皮表达换成实质内容（考试应用文求稳）"]},"recite":[{"wrong":"craftmen","right":"craftsmen（题干原文）"},{"wrong":"the craft demonstrate","right":"the craft demonstration / the crafts"},{"wrong":"capabilities to craft-making","right":"capabilities in craft-making"},{"wrong":"gather the school hall","right":"gather at the school hall"},{"wrong":"Yours, sincerely","right":"Yours sincerely,（中间无逗号、末尾逗号）"}]}</script>
 <script>
-/* ========= 状态 ========= */
-let DATA = null;           // 原始 JSON
-let marks = {};            // id -> {t, cite, note}  当前标注状态
-let activeTool = null;     // 当前选中工具 key
-let draft = false;         // 清样版
-let viewing = false;       // false=编辑(批注者) true=阅读(受众)
-let history = [];          // 撤销栈
-let editingSeg = null;
-let openSegId = null;      // 当前展开批注卡的词
-
-const TOOLS = [
-  {key:'error',    ic:'◯', lb:'错词圈',  tip:'选中后点词/划选 → 错词圈'},
-  {key:'grammar',  ic:'〰', lb:'句法波浪',tip:'语法/词性/搭配错'},
-  {key:'good',     ic:'▨', lb:'亮点高亮',tip:'写得好的表达'},
-  {key:'fatal',    ic:'⚠', lb:'硬伤标记',tip:'内容矛盾等致命扣分'},
-  {key:'template', ic:'⬚', lb:'模板句式',tip:'可套用的空壳句式'},
-  {key:'note',     ic:'💬', lb:'纯批注',  tip:'只挂意见，不改文字'},
+const SHAPES = [
+  {key:'wave',      ic:'〰',  lb:'波浪',    cls:'mk-wave'},
+  {key:'circle',    ic:'◯',  lb:'圈',      cls:'mk-circle'},
+  {key:'box',       ic:'▭',  lb:'矩形框',  cls:'mk-box'},
+  {key:'highlight', ic:'▨',  lb:'高亮',    cls:'mk-highlight'},
+  {key:'underline', ic:'_',  lb:'下划线',  cls:'mk-underline'},
+  {key:'double',    ic:'=',  lb:'双下划线',cls:'mk-double'},
 ];
+const PALETTES = {
+  wave:['#d3232f','#e08a00','#2f6fd0','#7b5cc4'],
+  circle:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
+  box:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
+  highlight:['#ffe066','#b7f0b1','#a8d8ff','#ffc2d1'],
+  underline:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
+  double:['#d3232f','#7b5cc4','#2f6fd0','#2b2721'],
+};
+const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',box:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0'};
 
-/* 段落里 [[type:quote|note]] 语法解析 */
-function parseBlocks(){
-  const out = [];
-  DATA.blocks.forEach((b, bi)=>{
-    out.push({...b, page:0, html:renderInline(b.text, bi+'-0')});
-  });
-  return out;
+let DATA=null;
+let paraMarks={};
+let sid=0;
+let viewing=false, draft=false;
+let activeShape=null, activeColor={};
+let history=[];
+let editing=null, openAnnoEl=null;
+let circleBoxQueue=[];
+
+function parsePara(text, pid){
+  const marks=[]; let plain=''; let i=0;
+  const re=/\[\[([a-z]+):([^|\]]+)\|([^\]]*)\]\]/g; let m;
+  while((m=re.exec(text))){
+    plain += text.slice(i, m.index);
+    const start=plain.length; plain += m[2]; const end=plain.length;
+    marks.push({id:'m'+(sid++), start, end, shape:shapeFromLegacy(m[1]), color:colorFromLegacy(m[1]), note:m[3]});
+    i=re.lastIndex;
+  }
+  plain += text.slice(i);
+  return {plain, marks};
 }
+function shapeFromLegacy(t){return ({error:'circle',grammar:'wave',good:'highlight',fatal:'wave',template:'box',note:'wave'})[t]||'wave';}
+function colorFromLegacy(t){return ({error:'#d3232f',grammar:'#e08a00',good:'#b7f0b1',fatal:'#ff4d2e',template:'#2f6fd0',note:'#7b5cc4'})[t]||'#d3232f';}
 
-let segCounter = 0;
-function renderInline(text, pkey){
-  // 转义
-  let esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // 提取 [[...]]
-  esc = esc.replace(/\[\[([a-z]+):([^|\]]+)\|([^\]]*)\]\]/g, (m, type, quote, note)=>{
-    const id = 'seg-'+(segCounter++);
-    marks[id] = {t:type, quote:quote, note:note};
-    return `<span class="seg" data-id="${id}" data-t="${type}">${quote}</span>`;
-  });
-  return esc;
-}
-
-/* ========= 渲染 ========= */
 function render(){
-  document.getElementById('pTitle').textContent = DATA.meta.title;
-  document.getElementById('pSub').textContent = DATA.meta.subtitle + ' ｜ ' + DATA.meta.source;
-  document.getElementById('pScore').innerHTML = `<b>${DATA.meta.score}</b><span>${DATA.meta.scoreNote}</span><div class="tap">点此看总评</div>`;
+  const M=DATA.meta;
+  document.getElementById('pTitle').textContent=M.title;
+  document.getElementById('pSub').textContent=M.subtitle+' ｜ '+M.source;
+  document.getElementById('pScore').innerHTML=`<b>${M.score}</b><span>${M.scoreNote}</span><div class="tap">点此看总评</div>`;
   const psEl=document.getElementById('pScore');
   psEl.classList.toggle('clickable', viewing);
-  psEl.onclick=(e)=>{ if(viewing){ e.stopPropagation(); openSummary(); } };
+  psEl.onclick=(e)=>{ if(viewing){e.stopPropagation();openSummary();} };
 
-  const blocks = parseBlocks();
-  const html = blocks.map(b=>{
-    const cls = b.type==='salutation'?'salutation':(b.type==='closing'?'closing':'');
-    return `<p class="${cls}">${b.html}</p>`;
-  }).join('');
-  document.getElementById('content').innerHTML = html;
-  document.body.classList.toggle('draft', draft);
+  const content=document.getElementById('content');
+  content.innerHTML='';
+  DATA.blocks.forEach((b, idx)=>{
+    const pid='p'+idx;
+    const {plain, marks}=parsePara(b.text, pid);
+    if(!paraMarks[pid]) paraMarks[pid]=marks;
+    const p=document.createElement('p');
+    if(b.type==='salutation') p.className='salutation';
+    if(b.type==='closing') p.className='closing';
+    p.dataset.pid=pid;
+    p.appendChild(buildParaContent(pid, plain, paraMarks[pid]));
+    content.appendChild(p);
+  });
   document.body.classList.toggle('viewing', viewing);
-  bindSegments();
-  buildTools();
-  syncViewToggle();
-  if(viewing) hint('阅读视角：点标注的词可看批注');
+  document.body.classList.toggle('draft', draft);
+  buildTools(); syncToggle();
+  requestAnimationFrame(()=>drawOverlays());
 }
-
-/* ========= 视角切换（右上角按钮） ========= */
-/* 显示「笔」= 当前阅读 → 点它进编辑；显示「书页」= 当前编辑 → 点它进阅读 */
-function syncViewToggle(){
-  const icon=document.getElementById('vtIcon'), label=document.getElementById('vtLabel'), btn=document.getElementById('viewToggle');
-  if(viewing){ icon.textContent='✏️'; label.textContent='切到编辑'; btn.title='当前：阅读视角（受众）→ 点击进入编辑'; }
-  else       { icon.textContent='📖'; label.textContent='切到阅读'; btn.title='当前：编辑视角（批注者）→ 点击进入阅读'; }
+function syncToggle(){
+  const icon=document.getElementById('vtIcon'), label=document.getElementById('vtLabel');
+  if(viewing){icon.textContent='✏️';label.textContent='切到编辑';}
+  else{icon.textContent='📖';label.textContent='切到阅读';}
 }
-document.getElementById('viewToggle').onclick=()=>{
-  viewing=!viewing;
-  if(viewing){ activeTool=null; hideAllAnnos(); }
-  render();
-  hint(viewing?'已进入阅读视角（受众）':'已进入编辑视角（批注者）');
-};
+function buildParaContent(pid, plain, marks){
+  const frag=document.createDocumentFragment();
+  if(!marks.length){frag.appendChild(document.createTextNode(plain));return frag;}
+  const bounds=new Set([0,plain.length]);
+  marks.forEach(mk=>{bounds.add(mk.start);bounds.add(mk.end);});
+  const pts=[...bounds].sort((a,b)=>a-b);
+  const spans=[];
+  for(let k=0;k<pts.length-1;k++){
+    const s=pts[k], e=pts[k+1]; if(s===e) continue;
+    const span=document.createElement('span');
+    span.className='run'; span.textContent=plain.slice(s,e);
+    span.dataset.pid=pid; span.dataset.start=s; span.dataset.end=e;
+    frag.appendChild(span); spans.push({s,e,el:span});
+  }
+  marks.forEach(mk=>{
+    const shape=mk.shape, cls=(SHAPES.find(x=>x.key===shape)||{}).cls;
+    if(shape==='circle'||shape==='box'){}
+    else if(shape==='highlight'){
+      spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add('mk-highlight-span');sp.el.style.background=hexA(mk.color,.55);sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
+    } else {
+      spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add(cls);sp.el.style.textDecorationColor=mk.color;sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
+    }
+  });
+  circleBoxQueue=circleBoxQueue.concat(marks.filter(m=>m.shape==='circle'||m.shape==='box').map(m=>({pid,m})));
+  return frag;
+}
+function drawOverlays(){
+  document.querySelectorAll('#content .overlay').forEach(o=>o.remove());
+  document.querySelectorAll('#content p').forEach(p=>{
+    const pid=p.dataset.pid;
+    (paraMarks[pid]||[]).forEach(m=>{
+      if(m.shape!=='circle'&&m.shape!=='box') return;
+      segmentsByOffset(p, m.start, m.end).forEach(rect=>{
+        const ov=document.createElement('div'); ov.className='overlay';
+        ov.style.left=rect.x+'px'; ov.style.top=rect.y+'px'; ov.style.width=rect.w+'px'; ov.style.height=rect.h+'px';
+        if(m.shape==='box') ov.innerHTML=`<svg width="${rect.w}" height="${rect.h}" style="overflow:visible"><rect x="1" y="1" width="${Math.max(2,rect.w-2)}" height="${Math.max(2,rect.h-2)}" rx="3" fill="none" stroke="${m.color}"/></svg>`;
+        else ov.innerHTML=`<svg width="${rect.w}" height="${rect.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(rect.w,rect.h)}"/></svg>`;
+        p.appendChild(ov);
+      });
+    });
+  });
+}
+function segmentsByOffset(p, start, end){
+  const runs=[...p.querySelectorAll('.run')]; const flat=[];
+  runs.forEach(r=>{
+    const s=+r.dataset.start, e=+r.dataset.end;
+    if(e<=start||s>=end) return;
+    const a=Math.max(start,s), b=Math.min(end,e);
+    flat.push(...rangeRects(r.firstChild, a-s, b-s));
+  });
+  const pr=p.getBoundingClientRect();
+  return flat.map(r=>({x:r.left-pr.left-3,y:r.top-pr.top-4,w:r.width+6,h:r.height+9}));
+}
+function rangeRects(node, from, to){
+  if(!node||node.nodeType!==3) return [];
+  const range=document.createRange();
+  range.setStart(node, Math.max(0,from)); range.setEnd(node, Math.min(node.length,to));
+  return [...range.getClientRects()].map(r=>({left:r.left,top:r.top,width:r.width,height:r.height}));
+}
+function ellipsePath(w,h){
+  const cx=w/2,cy=h/2,rx=w/2-1,ry=h/2-1;
+  return `M ${cx-rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx+rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx-rx} ${cy} Z`;
+}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
 
-/* ========= 工具列（仅编辑视角显示） ========= */
 function buildTools(){
-  const t = document.getElementById('tools');
-  if(t.dataset.built && t.dataset.draft===String(draft)) { refreshActive(); return; }
-  t.innerHTML='';
+  const t=document.getElementById('tools'); t.innerHTML='';
   if(draft){
-    t.innerHTML = `<div class="tool mini" id="btnBackDraft"><span class="ic">✎</span><span class="lb">回到批阅</span></div>
-      <div class="tsep"></div>
-      <div class="tool mini" id="btnSum"><span class="ic">📋</span><span class="lb">总评</span></div>`;
+    t.innerHTML=`<div class="tool mini" id="btnBackDraft"><span class="ic">✎</span><span class="lb">回到批阅</span></div><div class="tsep"></div><div class="tool mini" id="btnSum"><span class="ic">📋</span><span class="lb">总评</span></div>`;
     document.getElementById('btnBackDraft').onclick=()=>{draft=false;render();hint('已切回批阅版');};
     document.getElementById('btnSum').onclick=openSummary;
-    t.dataset.built='1'; t.dataset.draft='true';
     return;
   }
-  TOOLS.forEach(tool=>{
-    const d=document.createElement('div');
-    d.className='tool'; d.dataset.key=tool.key;
-    d.innerHTML=`<span class="ic" style="color:${colorOf(tool.key)}">${tool.ic}</span><span class="lb">${tool.lb}</span>`;
-    d.onclick=()=>{activeTool = (activeTool===tool.key? null : tool.key); refreshActive(); hint(activeTool? tool.lb+'：'+tool.tip : '已取消工具');};
+  const lb=document.createElement('div'); lb.className='tlabel'; lb.textContent='标记工具'; t.appendChild(lb);
+  SHAPES.forEach(s=>{
+    const d=document.createElement('div'); d.className='tool'+(activeShape===s.key?' active':''); d.dataset.shape=s.key;
+    const col=activeColor[s.key]||DEF_COLOR[s.key];
+    d.innerHTML=`<span class="ic" style="color:${col}">${s.ic}</span><span class="lb">${s.lb}</span><span class="dot" style="background:${col}"></span>`;
+    d.onclick=(e)=>{e.stopPropagation();openSwatch(s.key,d);};
     t.appendChild(d);
   });
-  t.insertAdjacentHTML('beforeend','<div class="tsep"></div>');
-  const extras=[
-    {id:'btnUndo', ic:'↩', lb:'撤销', fn:undo},
-    {id:'btnDraft', ic:'📄', lb:'清样版', fn:()=>{draft=true;render();hint('清样版：纯净答卷');}},
-    {id:'btnSum', ic:'📋', lb:'总评', fn:openSummary},
-  ];
-  extras.forEach(e=>{
-    const d=document.createElement('div');
-    d.className='tool mini'; d.id=e.id;
-    d.innerHTML=`<span class="ic">${e.ic}</span><span class="lb">${e.lb}</span>`;
-    d.onclick=e.fn; t.appendChild(d);
-  });
-  t.dataset.built='1'; t.dataset.draft='false';
-  refreshActive();
+  const sep=document.createElement('div'); sep.className='tsep'; t.appendChild(sep);
+  const lb2=document.createElement('div'); lb2.className='tlabel'; lb2.textContent='操作'; t.appendChild(lb2);
+  [['btnUndo','↩','撤销',undo],['btnDraft','📄','清样版',()=>{draft=true;render();hint('清样版：去掉所有标记');}],['btnSum','📋','总评',openSummary]]
+    .forEach(([id,ic,l,fn])=>{const d=document.createElement('div');d.className='tool mini';d.id=id;d.innerHTML=`<span class="ic">${ic}</span><span class="lb">${l}</span>`;d.onclick=(e)=>{e.stopPropagation();fn();};t.appendChild(d);});
 }
-function colorOf(k){const m={error:'#ff6b6b',grammar:'#f0a83c',good:'#4ecf78',fatal:'#ff6a4d',template:'#5c9cff',note:'#b28cff'};return m[k]||'#cfd6e0';}
-function refreshActive(){
-  document.querySelectorAll('.tool[data-key]').forEach(d=>{
-    d.classList.toggle('active', d.dataset.key===activeTool);
+function openSwatch(shapeKey, anchorEl){
+  const sw=document.getElementById('swatch');
+  const cur=activeColor[shapeKey]||DEF_COLOR[shapeKey]; const s=SHAPES.find(x=>x.key===shapeKey);
+  sw.innerHTML=`<div class="swTitle">${s.lb} · 选颜色</div><div class="swRow">`+PALETTES[shapeKey].map(c=>`<div class="swatch-dot${c===cur?' on':''}" data-c="${c}" style="background:${c}"></div>`).join('')+`</div>`;
+  sw.classList.add('show');
+  const r=anchorEl.getBoundingClientRect();
+  sw.style.top=Math.max(8,Math.min(window.innerHeight-sw.offsetHeight-10,r.top))+'px';
+  sw.style.left=Math.max(8,r.left-sw.offsetWidth-8)+'px';
+  sw.querySelectorAll('.swatch-dot').forEach(dot=>{
+    dot.onclick=(e)=>{e.stopPropagation();activeColor[shapeKey]=dot.dataset.c;activeShape=shapeKey;sw.classList.remove('show');hint(`${s.lb}（${colorName(dot.dataset.c)}）：点词或划选文字即可标记`);buildTools();};
   });
 }
+function colorName(c){return {'#d3232f':'红','#e08a00':'橙','#2e9e4f':'绿','#2f6fd0':'蓝','#7b5cc4':'紫','#ffe066':'黄','#b7f0b1':'浅绿','#a8d8ff':'浅蓝','#ffc2d1':'粉','#2b2721':'黑'}[c]||c;}
+document.addEventListener('click',()=>document.getElementById('swatch').classList.remove('show'));
+document.getElementById('swatch').addEventListener('click',e=>e.stopPropagation());
+/* ==================== 交互 ==================== */
+let drag=null;
 
-/* ========= 交互：先选工具 → 点词 / 划选 ========= */
-function bindSegments(){
-  document.querySelectorAll('.seg').forEach(el=>{
-    el.onclick=(ev)=>{ ev.stopPropagation(); handleSegClick(el); };
+document.getElementById('content').addEventListener('mousedown', e=>{
+  if(viewing||draft) return;
+  const span=e.target.closest('.run');
+  if(!span||!activeShape) return;
+  drag={pid:span.dataset.pid, s:+span.dataset.start, e:+span.dataset.end, moved:false};
+});
+document.getElementById('content').addEventListener('mousemove', ev=>{
+  if(!drag) return;
+  const span=ev.target.closest('.run');
+  if(!span||span.dataset.pid!==drag.pid) return;
+  const s=+span.dataset.start, en=+span.dataset.end;
+  drag.e=en; drag.moved=true;
+  paintSel(drag.pid, Math.min(drag.s,en), Math.max(drag.e,s));
+});
+document.addEventListener('mouseup', ev=>{
+  if(!drag) return;
+  const d=drag; drag=null; clearSel();
+  if(!d.moved){ return; } // 交给 click 处理单点
+  if(d.e===undefined) return;
+  const s=Math.min(d.s,d.e), e2=Math.max(d.e,d.s);
+  if(e2<=s) return;
+  suppressClick=true;
+  applyRange(d.pid, s, e2);
+});
+let suppressClick=false;
+function paintSel(pid, s, e){
+  clearSel();
+  document.querySelectorAll(`p[data-pid="${pid}"] .run`).forEach(r=>{
+    const rs=+r.dataset.start, re=+r.dataset.end;
+    if(re<=s||rs>=e) return;
+    r.classList.add('sel');
   });
 }
-
-function handleSegClick(el){
-  if(draft) return;
-  const id = el.dataset.id;
-
-  // ===== 阅读（受众）视角：点标注的词 → 展开批注卡 =====
-  if(viewing){
-    if(openSegId===id){ hideAllAnnos(); return; }
-    if(marks[id] && marks[id].note) showAnnoFor(el);
-    else hint('这个词没有批注');
-    return;
-  }
-
-  // ===== 编辑（批注者）视角 =====
-  if(!activeTool){
-    // 无工具 → 展开已有批注进行编辑；无批注则提示
-    if(marks[id]) openInput(id, marks[id]);
-    else hint('先在右侧选一个工具，再点这句话');
-    return;
-  }
-  const quote = marks[id] ? marks[id].quote : el.textContent;
-  history.push({id, prev: marks[id] ? {...marks[id]} : null});
-  openInput(id, {t:activeTool, quote, note: marks[id]?.note||''});
+function clearSel(){ document.querySelectorAll('.run.sel').forEach(r=>r.classList.remove('sel')); }
+function applyRange(pid, s, e){
+  const mk={id:'m'+(sid++), start:s, end:e, shape:activeShape, color:activeColor[activeShape]||DEF_COLOR[activeShape], note:''};
+  paraMarks[pid].push(mk);
+  history.push({type:'add', pid, ids:[mk.id]});
+  rerenderAndDraw();
+  openEditor(pid, mk, true);
 }
 
-/* 悬浮/点击批注卡：浮在词旁 */
-function showAnnoFor(el){
-  const id=el.dataset.id, m=marks[id];
-  if(!m||!m.note) return;
-  hideAllAnnos();
-  openSegId=id;
-  el.classList.add('seg-active');
-  const card=document.createElement('div');
-  card.className='anno show'; card.dataset.t=m.t; card.dataset.for=id;
-  card.innerHTML=`<span class="cite">${m.quote}</span>${m.note}`;
-  document.getElementById('paper').appendChild(card);
-  const pr=document.getElementById('paper').getBoundingClientRect();
-  const er=el.getBoundingClientRect();
-  let left = er.right - pr.left + 10;
-  let top  = er.top - pr.top - 4;
-  if(left + 260 > pr.width) left = Math.max(6, er.left - pr.left - 256);
-  if(top < 4) top = 4;
-  if(top + card.offsetHeight > pr.height-6) top = pr.height - card.offsetHeight - 6;
-  card.style.left=left+'px'; card.style.top=top+'px';
-}
-function hideAllAnnos(){
-  document.querySelectorAll('.anno:not(.tmpl)').forEach(a=>a.remove());
-  document.querySelectorAll('.seg-active').forEach(s=>s.classList.remove('seg-active'));
-  openSegId=null;
-}
-
-/* 点空白处 → 收起批注卡（核心交互） */
-document.getElementById('stage').addEventListener('click', (e)=>{
-  if(e.target.closest('.seg')||e.target.closest('.anno')||e.target.closest('#viewToggle')) return;
-  if(e.target.closest('#tools')) return;
-  hideAllAnnos();
+document.getElementById('content').addEventListener('click', e=>{
+  if(suppressClick){ suppressClick=false; return; }
+  const span=e.target.closest('.run');
+  if(!span){ hideAnno(); return; }
+  const pid=span.dataset.pid;
+  if(viewing||draft){ handleViewClick(pid, span); return; }
+  handleEditClick(pid, span);
 });
 
-/* ========= 批注输入弹层 ========= */
-function openInput(id, cur){
-  editingSeg=id;
-  const el=document.querySelector(`.seg[data-id="${id}"]`);
-  document.getElementById('imTitle').textContent = ({error:'错词圈',grammar:'句法波浪',good:'亮点高亮',fatal:'硬伤标记',template:'模板句式',note:'纯批注'})[cur.t]||'批注';
-  document.getElementById('imCite').textContent = '「'+cur.quote+'」';
-  document.getElementById('imText').value = cur.note||'';
-  document.getElementById('inputModal').classList.add('show');
-  setTimeout(()=>document.getElementById('imText').focus(),50);
+function handleEditClick(pid, span){
+  const s=+span.dataset.start, e=+span.dataset.end;
+  const mk=findMark(pid, s, e);
+  if(mk){ openEditor(pid, mk); return; }
+  if(!activeShape){ hint('先在右侧选一个标记工具'); return; }
+  const shape=activeShape, color=activeColor[shape]||DEF_COLOR[shape];
+  const newMk={id:'m'+(sid++), start:s, end:e, shape, color, note:''};
+  paraMarks[pid].push(newMk);
+  history.push({type:'add', pid, ids:[newMk.id]});
+  rerenderAndDraw();
+  openEditor(pid, newMk, true);
 }
-document.getElementById('imCancel').onclick=()=>{
-  // 撤销本次（若之前无标记则移除标记）
-  const h=history.pop();
-  if(h){ if(h.prev===null){ delete marks[h.id]; const el=document.querySelector(`.seg[data-id="${h.id}"]`); if(el){el.removeAttribute('data-t');} } else { marks[h.id]=h.prev; applyMark(h.id,h.prev.t);} }
-  document.getElementById('inputModal').classList.remove('show');
-};
-document.getElementById('imOk').onclick=()=>{
-  const note=document.getElementById('imText').value.trim();
-  const cur=marks[editingSeg];
-  marks[editingSeg]={...cur, note};
-  applyMark(editingSeg, cur.t);
-  document.getElementById('inputModal').classList.remove('show');
-  hint('已标注');
-};
-function applyMark(id,type){
-  const el=document.querySelector(`.seg[data-id="${id}"]`);
-  if(!el) return;
-  if(type) el.setAttribute('data-t',type); else el.removeAttribute('data-t');
+function findMark(pid, s, e){
+  return (paraMarks[pid]||[]).find(m=>s>=m.start && e<=m.end);
 }
+function handleViewClick(pid, span){
+  if(openAnnoEl){ hideAnno(); return; }
+  const s=+span.dataset.start, e=+span.dataset.end;
+  const mk=findMark(pid, s, e);
+  if(!mk||!mk.note){ hint('这里没有批注'); return; }
+  showAnno(span, mk);
+}
+function showAnno(span, mk){
+  const card=document.createElement('div'); card.className='anno show'; card.dataset.mk=mk.id;
+  card.innerHTML=`<span class="cite">${span.textContent}</span>${mk.note}`;
+  document.getElementById('paper').appendChild(card);
+  const pr=document.getElementById('paper').getBoundingClientRect();
+  const er=span.getBoundingClientRect();
+  let left=er.right-pr.left+10, top=er.top-pr.top-4;
+  if(left+270>pr.width) left=Math.max(6, er.left-pr.left-266);
+  if(top<4) top=4;
+  if(top+card.offsetHeight>pr.height-6) top=Math.max(4, pr.height-card.offsetHeight-6);
+  card.style.left=left+'px'; card.style.top=top+'px';
+  openAnnoEl=card;
+}
+function hideAnno(){ if(openAnnoEl){openAnnoEl.remove();openAnnoEl=null;} }
+document.getElementById('stage').addEventListener('click', e=>{
+  if(e.target.closest('.run')||e.target.closest('.anno')||e.target.closest('#viewToggle')||e.target.closest('.tool')||e.target.closest('#swatch')||e.target.closest('#pScore')) return;
+  hideAnno();
+});
+document.getElementById('stage').addEventListener('scroll', hideAnno);
 
-/* ========= 撤销 ========= */
+/* ==================== 标记编辑弹层 ==================== */
+function openEditor(pid, mk, isNew){
+  editing={pid, id:mk.id, orig:{...mk}, isNew};
+  const m=paraMarks[pid].find(x=>x.id===mk.id);
+  const text=plainOf(pid).slice(m.start, m.end);
+  document.getElementById('emTitle').textContent = isNew?'新建标记':'编辑标记';
+  document.getElementById('emCite').textContent = `「${text}」`;
+  document.getElementById('emText').value = m.note||'';
+  renderShapeBtns(m.shape);
+  renderColorDots(m.shape, m.color);
+  document.getElementById('editModal').classList.add('show');
+}
+function plainOf(pid){ const p=document.querySelector(`p[data-pid="${pid}"]`); return [...p.querySelectorAll('.run')].map(r=>r.textContent).join(''); }
+function renderShapeBtns(cur){
+  document.getElementById('emShapes').innerHTML=SHAPES.map(s=>`<div class="mbtn${s.key===cur?' on':''}" data-shape="${s.key}"><span>${s.ic}</span>${s.lb}</div>`).join('');
+  document.querySelectorAll('#emShapes .mbtn').forEach(b=>{
+    b.onclick=()=>{ const sh=b.dataset.shape; renderShapeBtns(sh); renderColorDots(sh, PALETTES[sh][0]); editing._shape=sh; editing._color=PALETTES[sh][0]; };
+  });
+  editing._shape=cur;
+}
+function renderColorDots(shape, cur){
+  document.getElementById('emColors').innerHTML=PALETTES[shape].map(c=>`<div class="pdot${c===cur?' on':''}" data-c="${c}" style="background:${c}"></div>`).join('');
+  document.querySelectorAll('#emColors .pdot').forEach(d=>{
+    d.onclick=()=>{ renderColorDots(shape, d.dataset.c); editing._color=d.dataset.c; };
+  });
+  editing._color=cur;
+}
+document.getElementById('emOk').onclick=()=>{
+  const {pid, id, orig}=editing;
+  const m=paraMarks[pid].find(x=>x.id===id);
+  if(!editing.isNew) history.push({type:'modify', pid, id, prev:{...orig}});
+  m.shape=editing._shape; m.color=editing._color; m.note=document.getElementById('emText').value.trim();
+  closeEditor(); rerenderAndDraw();
+  hint('已保存');
+};
+document.getElementById('emCancel').onclick=()=>{
+  if(editing&&editing.isNew){
+    const {pid,id}=editing;
+    paraMarks[pid]=paraMarks[pid].filter(x=>x.id!==id);
+  }
+  closeEditor(); rerenderAndDraw();
+};
+document.getElementById('emDelete').onclick=()=>{
+  const {pid,id}=editing;
+  const m=paraMarks[pid].find(x=>x.id===id);
+  history.push({type:'delete', pid, snapshot:{...m}});
+  paraMarks[pid]=paraMarks[pid].filter(x=>x.id!==id);
+  closeEditor(); rerenderAndDraw(); hint('已删除标记');
+};
+function closeEditor(){ document.getElementById('editModal').classList.remove('show'); editing=null; }
+
+/* ==================== 撤销 ==================== */
 function undo(){
   const h=history.pop();
   if(!h){hint('没有可撤销的操作');return;}
-  if(h.prev===null){ delete marks[h.id]; applyMark(h.id,null); }
-  else { marks[h.id]=h.prev; applyMark(h.id,h.prev.t); }
-  hint('已撤销');
+  if(h.type==='add'){ paraMarks[h.pid]=paraMarks[h.pid].filter(x=>!h.ids.includes(x.id)); }
+  else if(h.type==='delete'){ paraMarks[h.pid].push(h.snapshot); }
+  else if(h.type==='modify'){ const m=paraMarks[h.pid].find(x=>x.id===h.id); if(m){m.shape=h.prev.shape;m.color=h.prev.color;m.note=h.prev.note;} }
+  rerenderAndDraw(); hint('已撤销');
 }
 
-/* ========= 总评弹层 ========= */
+/* ==================== 总评 ==================== */
 function openSummary(){
   const s=DATA.summary, m=DATA.meta;
   let html=`<h3>${m.title} · 总评</h3><div class="sub">得分预估 <b style="color:#c9992e">${m.score}</b>（${m.scoreNote}）</div>`;
@@ -572,42 +529,32 @@ function openSummary(){
   html+=`</table><div class="dimlabel">核心问题（按优先级）</div><ol style="font-size:12px;line-height:1.8;padding-left:18px;margin:6px 0">`;
   s.priority.forEach(p=>html+=`<li>${p}</li>`);
   html+=`</ol><div class="dimlabel">背诵清单（错处 → 正确）</div><ul class="reclist">`;
-  DATA.recite.forEach(r=>html+=`<li><b>${r.wrong}</b> ${'→'} <i>${r.right}</i></li>`);
+  DATA.recite.forEach(r=>html+=`<li><b>${r.wrong}</b> → <i>${r.right}</i></li>`);
   html+=`</ul><div class="row"><button class="primary" onclick="document.getElementById('sumModal').classList.remove('show')">关闭</button></div>`;
   document.getElementById('sumBox').innerHTML=html;
   document.getElementById('sumModal').classList.add('show');
 }
 document.getElementById('sumModal').onclick=(e)=>{ if(e.target.id==='sumModal') e.target.classList.remove('show'); };
 
-/* ========= 提示 ========= */
-let hintTimer=null;
-function hint(msg){
-  const h=document.getElementById('hint');
-  h.textContent=msg; h.classList.add('show');
-  clearTimeout(hintTimer); hintTimer=setTimeout(()=>h.classList.remove('show'),1800);
-}
+/* ==================== 工具：重绘 ==================== */
+function rerenderAndDraw(){ render(); }
+var _t=null;
+function hint(msg){ const h=document.getElementById('hint'); h.textContent=msg; h.classList.add('show'); clearTimeout(_t); _t=setTimeout(()=>h.classList.remove('show'),1900); }
 
-/* ========= 滚动时收起活批注 ========= */
-document.getElementById('stage').addEventListener('scroll',hideAllAnnos);
+/* ==================== 视角切换 ==================== */
+document.getElementById('viewToggle').onclick=()=>{
+  viewing=!viewing; if(viewing){activeShape=null;hideAnno();}
+  render(); hint(viewing?'已进入阅读视角（受众）':'已进入编辑视角（批注者）');
+};
+window.addEventListener('resize', ()=>requestAnimationFrame(drawOverlays));
 
-/* ========= 加载数据 ========= */
-/* 数据内联在下方 <script id="app-data"> 中（file:// 下 fetch 被 CORS 拦截）
-   若用本地服务器打开，把 EMBED 设为 false 即改读 data/*.json */
-const EMBED = true;
-/* 支持 URL 参数 ?mode=view 直接进入阅读（受众）视角，便于分享 */
-const QS = new URLSearchParams(location.search);
-function boot(j){
-  DATA=j;
-  if(QS.get('mode')==='view') viewing=true;
-  render();
-  if(!viewing) hint('先选右侧工具，再点句子；点空白处收起批注');
-}
-if(EMBED){
-  boot(JSON.parse(document.getElementById('app-data').textContent));
-}else{
-  fetch('data/2025-english1-essayA.json').then(r=>r.json()).then(boot)
-    .catch(err=>{document.getElementById('content').innerHTML='<p style="color:#c33">数据加载失败：'+err+'</p>';});
-}
+/* ==================== 启动 ==================== */
+const EMBED=true;
+const QS=new URLSearchParams(location.search);
+function boot(j){ DATA=j; if(QS.get('mode')==='view') viewing=true; render(); if(!viewing) hint('选工具→点词标记；点已标记处可改'); }
+if(EMBED){ boot(JSON.parse(document.getElementById('app-data').textContent)); }
+else{ fetch('data/2025-english1-essayA.json').then(r=>r.json()).then(boot).catch(err=>{document.getElementById('content').innerHTML='<p style="color:#c33">数据加载失败：'+err+'</p>';}); }
+
 </script>
 </body>
 </html>
