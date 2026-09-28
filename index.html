@@ -129,6 +129,16 @@
   .reclist i{color:#2e7d46;font-style:normal}
   .dimlabel{font-size:11px;letter-spacing:1px;color:#a5641c;margin:14px 0 2px;font-weight:700}
 
+  .pklist{display:flex;flex-direction:column;gap:7px;margin:8px 0 0}
+  .pkitem{display:flex;align-items:center;gap:9px;border:1px solid #ddd2b8;background:#fffdf7;
+    border-radius:7px;padding:9px 11px;cursor:pointer;transition:.13s}
+  .pkitem:hover{background:#f6efdc;border-color:#c9992e}
+  .pkitem.pknew{border-style:dashed;color:#8a6d1f}
+  .pkitem .pksw{font-size:17px;width:20px;text-align:center;font-weight:700}
+  .pkitem .pklb{flex:1;font-size:12.5px;color:#332e26}
+  .pkitem .pklb i{display:block;font-family:var(--font-serif);color:#7d7364;font-size:11px;font-style:italic;margin-top:1px}
+  .pkitem .pknote{font-size:10.5px;color:#a5641c;white-space:nowrap}
+
   @media (max-width:560px){
     #tools{flex-basis:70px;padding:10px 5px}
     .tool{width:58px;padding:6px 1px 4px}
@@ -184,6 +194,15 @@
 
 <div class="modal" id="sumModal">
   <div class="box" id="sumBox"></div>
+</div>
+
+<div class="modal" id="pickModal">
+  <div class="box" style="width:min(420px,94vw)">
+    <h3>这里有重叠的标记</h3>
+    <div class="sub" id="pkCite"></div>
+    <div class="pklist" id="pkList"></div>
+    <div class="row"><button id="pkCancel">取消</button></div>
+  </div>
 </div>
 
 <script type="application/json" id="app-data">{"meta":{"title":"2025 考研英语（一）· 小作文（Part A 应用文）","subtitle":"回复邮件 ｜ 10 分 ｜ 约 100 词 ｜ 实际约 95 词","score":"7 / 10","scoreNote":"要点全覆盖、结构清晰；语言小错，无内容硬伤","source":"《考研英语万能模板.md》批阅基准","pages":1},"legend":[{"key":"error","label":"错词圈","color":"#d3232f","desc":"拼写 / 用词错误"},{"key":"grammar","label":"句法波浪","color":"#e08a00","desc":"语法 / 词性 / 搭配错"},{"key":"good","label":"亮点高亮","color":"#2e9e4f","desc":"写得好的表达"},{"key":"fatal","label":"硬伤标记","color":"#ff4d2e","desc":"内容矛盾等致命扣分"},{"key":"template","label":"模板句式","color":"#2f6fd0","desc":"可套用的空壳句式"},{"key":"note","label":"纯批注","color":"#7b5cc4","desc":"只挂意见，不改文字"}],"blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","id":"p1","text":"[[template:To enhance students' capabilities to craft-making and enrich their extracurricular life|📌 模板句式命中（《万能模板》8.4 通知开法 ^tmpl-notice-open）：To enhance students' capabilities to ___ and enrich their extracurricular life, ___ will be held on ___ at ___。你这句几乎照空壳写的，是全篇最规范的句子——但中间有两个小错，见下方波浪。]] To enhance students' [[grammar:capabilities to craft-making|capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making 或 capabilities to do craft-making。]] and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft [[grammar:demonstrate|词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。]] and willing to [[good:give a hand|地道，口语化恰当。]]"},{"type":"para","id":"p2","text":"The [[error:craftmen|拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！]] will show [[good:paper-cutting and bamboo weaving|具体、加分，符合“介绍内容”要求。]] Of course, there are other activities on the playground. [[note:Let me keep a little secret for you|俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。]]"},{"type":"para","id":"p3","text":"[[note:You are willing to give a hand. We are so grateful.|逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。]] [[template:Can you help prepare seats and test audio equipment?|📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___.]] We will [[grammar:gather the school hall|缺介词 → gather at the school hall。]] at 2 p.m. this Friday."},{"type":"para","id":"p4","text":"[[template:Looking forward to your reply.|📌 标准结尾句式，全对。模板库 8.6 也推荐 I look forward to hearing from you.]]"},{"type":"closing","text":"[[error:Yours, sincerely|标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。]]"},{"type":"closing","text":"Li Ming"}],"summary":{"dims":[{"name":"内容要点","text":"两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"},{"name":"语言","text":"小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making、gather the school hall；均为可自纠的常见错"},{"name":"语域","text":"Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"},{"name":"格式","text":"有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"},{"name":"结构","text":"三段式清晰，缩进式格式可用 ✅"}],"priority":["语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in、gather at——熟悉即可全对","书信格式：Yours sincerely, 的标点规范","语域：俏皮表达换成实质内容（考试应用文求稳）"]},"recite":[{"wrong":"craftmen","right":"craftsmen（题干原文）"},{"wrong":"the craft demonstrate","right":"the craft demonstration / the crafts"},{"wrong":"capabilities to craft-making","right":"capabilities in craft-making"},{"wrong":"gather the school hall","right":"gather at the school hall"},{"wrong":"Yours, sincerely","right":"Yours sincerely,（中间无逗号、末尾逗号）"}]}</script>
@@ -419,9 +438,20 @@ document.getElementById('content').addEventListener('click', e=>{
 
 function handleEditClick(pid, span){
   const s=+span.dataset.start, e=+span.dataset.end;
-  const mk=findMark(pid, s, e);
-  if(mk){ openEditor(pid, mk); return; }
-  if(!activeShape){ hint('先在右侧选一个标记工具'); return; }
+  const hits=findMarks(pid, s, e);
+  if(hits.length===0){
+    if(!activeShape){ hint('先在右侧选一个标记工具'); return; }
+    return createMark(pid, s, e);
+  }
+  // 有工具在手：若最内层标记没有“完全相同”覆盖该 span，允许继续加新标记（支持框内圈词）
+  const exact=hits.find(m=>m.start===s&&m.end===e);
+  if(activeShape && !exact){
+    return createMark(pid, s, e);
+  }
+  if(hits.length===1){ openEditor(pid, hits[0]); return; }
+  openPicker(pid, s, e, hits);
+}
+function createMark(pid, s, e){
   const shape=activeShape, color=activeColor[shape]||DEF_COLOR[shape];
   const newMk={id:'m'+(sid++), start:s, end:e, shape, color, note:''};
   paraMarks[pid].push(newMk);
@@ -429,13 +459,45 @@ function handleEditClick(pid, span){
   rerenderAndDraw();
   openEditor(pid, newMk, true);
 }
-function findMark(pid, s, e){
-  return (paraMarks[pid]||[]).find(m=>s>=m.start && e<=m.end);
+// 返回所有“覆盖”该范围（词落在标记内）的标记，内层（范围小）优先
+function findMarks(pid, s, e){
+  return (paraMarks[pid]||[]).filter(m=>s>=m.start && e<=m.end)
+    .sort((a,b)=>(a.end-a.start)-(b.end-b.start));
 }
+// 旧接口：取最内层
+function findMark(pid, s, e){ return findMarks(pid, s, e)[0]; }
+
+// 多层命中时的拾取器
+function openPicker(pid, s, e, hits){
+  const box=document.getElementById('pickModal');
+  const txt=plainOf(pid).slice(s, e);
+  document.getElementById('pkCite').textContent=`点选的是「${txt}」，这里有 ${hits.length} 层标记叠在一起：`;
+  const list=document.getElementById('pkList');
+  list.innerHTML='';
+  hits.forEach(m=>{
+    const sh=SHAPES.find(x=>x.key===m.shape)||{ic:'?',lb:m.shape};
+    const full=plainOf(pid).slice(m.start, m.end);
+    const d=document.createElement('div'); d.className='pkitem';
+    d.innerHTML=`<span class="pksw" style="color:${m.color}">${sh.ic}</span>
+      <span class="pklb">${sh.lb}<i>「${full.length>26?full.slice(0,26)+'…':full}」</i></span>
+      <span class="pknote">${m.note?'有批注':'无批注'}</span>`;
+    d.onclick=()=>{ closePicker(); openEditor(pid, m); };
+    list.appendChild(d);
+  });
+  // 允许“在此新建”
+  const nw=document.createElement('div'); nw.className='pkitem pknew';
+  nw.innerHTML=`<span class="pksw">＋</span><span class="pklb">选中「${txt}」新建一层标记</span>`;
+  nw.onclick=()=>{ closePicker(); if(!activeShape){hint('先在右侧选一个标记工具');return;} createMark(pid,s,e); };
+  list.appendChild(nw);
+  box.classList.add('show');
+}
+function closePicker(){ document.getElementById('pickModal').classList.remove('show'); }
 function handleViewClick(pid, span){
   if(openAnnoEl){ hideAnno(); return; }
   const s=+span.dataset.start, e=+span.dataset.end;
-  const mk=findMark(pid, s, e);
+  const hits=findMarks(pid, s, e);
+  // 优先显示有批注的（最内层优先）
+  const mk=hits.find(m=>m.note) || hits[0];
   if(!mk||!mk.note){ hint('这里没有批注'); return; }
   showAnno(span, mk);
 }
@@ -535,6 +597,8 @@ function openSummary(){
   document.getElementById('sumModal').classList.add('show');
 }
 document.getElementById('sumModal').onclick=(e)=>{ if(e.target.id==='sumModal') e.target.classList.remove('show'); };
+document.getElementById('pickModal').onclick=(e)=>{ if(e.target.id==='pickModal') e.target.classList.remove('show'); };
+document.getElementById('pkCancel').onclick=closePicker;
 
 /* ==================== 工具：重绘 ==================== */
 function rerenderAndDraw(){ render(); }
