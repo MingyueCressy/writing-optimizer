@@ -64,7 +64,7 @@
     {
       "type": "para",
       "id": "p3",
-      "text": "[[note:You are willing to give a hand. We are so grateful.|逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。]] [[template:Can you help prepare seats and test audio equipment?|📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___.]] We will [[grammar:gather the school hall|缺介词 → gather at the school hall。]] at 2 p.m. this Friday."
+      "text": "[[note:You are willing to give a hand. We are so grateful.|逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。]] [[template:Can you help prepare seats and test audio equipment?|📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___.]] We will gather the school hall at 2 p.m. this Friday."
     },
     {
       "type": "para",
@@ -88,7 +88,7 @@
       },
       {
         "name": "语言",
-        "text": "小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making、gather the school hall；均为可自纠的常见错"
+        "text": "小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making；均为可自纠的常见错"
       },
       {
         "name": "语域",
@@ -104,7 +104,7 @@
       }
     ],
     "priority": [
-      "语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in、gather at——熟悉即可全对",
+      "语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in——熟悉即可全对",
       "书信格式：Yours sincerely, 的标点规范",
       "语域：俏皮表达换成实质内容（考试应用文求稳）"
     ]
@@ -121,10 +121,6 @@
     {
       "wrong": "capabilities to craft-making",
       "right": "capabilities in craft-making"
-    },
-    {
-      "wrong": "gather the school hall",
-      "right": "gather at the school hall"
     },
     {
       "wrong": "Yours, sincerely",
