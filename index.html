@@ -150,6 +150,7 @@
   }
   body.viewing #tools{display:none}
   body.viewing #viewToggle{color:#bfe3c4}
+  body.locked #viewToggle{display:none}
 </style>
 </head>
 <body>
@@ -740,7 +741,7 @@ const EMBED=true;
 const QS=new URLSearchParams(location.search);
 function boot(j){
   DATA=j;
-  if(QS.get('mode')==='view') viewing=true;
+  if(QS.get('mode')==='view'){ viewing=true; document.body.classList.add('locked'); }
   render();
   // 读取本地暂存的标记（编辑与阅读视角都生效）
   restoredFromLocal=loadLocal();
