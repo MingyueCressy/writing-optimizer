@@ -55,7 +55,7 @@
   #content p.salutation{margin-bottom:12px}
   #content p.closing{margin:0 0 4px}
   .run{position:relative;cursor:pointer;border-radius:2px}
-  .run.pend{background:rgba(201,153,46,.28);box-shadow:0 0 0 1.5px #c9992e}
+  .pend-ov{position:absolute;pointer-events:none;background:rgba(201,153,46,.30);box-shadow:0 0 0 1.5px #c9992e;border-radius:3px;z-index:3}
 
   .mk-wave{text-decoration:underline wavy;text-decoration-thickness:1.7px;text-underline-offset:5px}
   .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
@@ -499,7 +499,11 @@ function applyRange(pid, s, e){
 }
 // B(a)：清起点
 function clearPendStart(){
-  if(pendStart){ pendStart=null; document.querySelectorAll('.run.pend').forEach(r=>r.classList.remove('pend')); }
+  if(pendStart){
+    pendStart=null;
+    document.querySelectorAll('.run.pend').forEach(r=>r.classList.remove('pend'));
+    document.querySelectorAll('.pend-ov').forEach(o=>o.remove());
+  }
 }
 
 document.getElementById('content').addEventListener('click', e=>{
@@ -508,39 +512,71 @@ document.getElementById('content').addEventListener('click', e=>{
   if(!span){ hideAnno(); clearPendStart(); return; }
   const pid=span.dataset.pid;
   if(viewing||draft){ handleViewClick(pid, span); return; }
-  handleEditClick(pid, span);
+  handleEditClick(pid, span, e);
 });
 
-function handleEditClick(pid, span){
-  const s=+span.dataset.start, e=+span.dataset.end;
+// 由点击坐标算出段落内字符偏移
+function clickCharOffset(p, ev){
+  let node=null, off=0;
+  if(document.caretRangeFromPoint){
+    const r=document.caretRangeFromPoint(ev.clientX, ev.clientY);
+    if(r){ node=r.startContainer; off=r.startOffset; }
+  } else if(document.caretPositionFromPoint){
+    const cp=document.caretPositionFromPoint(ev.clientX, ev.clientY);
+    if(cp){ node=cp.offsetNode; off=cp.offset; }
+  }
+  if(!node||node.nodeType!==3) return null;
+  return charOffset(p, node, off);
+}
+// 把字符偏移扩展到“词”的边界（英文词含字母/数字/连字符/撇号；中文按连续汉字块）
+function wordRangeAt(text, pos){
+  const isWord=ch=>/[A-Za-z0-9'\u2019-]/.test(ch);
+  const isCJK=ch=>/[\u4e00-\u9fa5]/.test(ch);
+  let fn = isWord, i=pos;
+  // 判断 pos 处的字符类型（向左优先）
+  const chAt = k => (k>=0&&k<text.length)?text[k]:'';
+  if(isCJK(chAt(pos)) || isCJK(chAt(pos-1))) fn = isCJK;
+  let s=pos, e=pos;
+  while(s>0 && fn(text[s-1])) s--;
+  while(e<text.length && fn(text[e])) e++;
+  if(s===e){ // 落在空格/标点上，退回单字符
+    return {s:Math.max(0,pos-1), e:Math.min(text.length,pos)};
+  }
+  return {s, e};
+}
+
+function handleEditClick(pid, span, ev){
+  const rs=+span.dataset.start, re=+span.dataset.end;
+  // 细化到“词”：优先用点击坐标定位；拿不到就退回整个 run
+  let s=rs, e=re;
+  if(ev){
+    const p=span.closest('p');
+    const co=clickCharOffset(p, ev);
+    if(co!==null){
+      const wr=wordRangeAt(plainOf(pid), co);
+      if(wr && wr.e>wr.s){ s=wr.s; e=wr.e; }
+    }
+  }
   const hits=findMarks(pid, s, e);
 
   // ===== B(a) 首尾点选：有工具在手时，两次点击定一个范围 =====
   if(activeShape){
-    const exact=hits.find(m=>m.start===s&&m.end===e);
-    if(hits.length>0 && !exact){
-      // 点在已有标记内部（非完全重合）→ 仍走首尾逻辑，允许框内圈词
-    }
     if(!pendStart){
-      // 第一次点击 → 设起点（提示再点结尾）
       pendStart={pid, s, e};
-      span.classList.add('pend');
-      hint('已设起点「'+span.textContent+'」，再点一个词确定范围结尾');
+      paintPend(pid, s, e);
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点一个词确定范围结尾');
       return;
     }
     if(pendStart.pid!==pid){
-      // 跨段：重设起点
-      clearPendStart(); pendStart={pid, s, e}; span.classList.add('pend');
-      hint('已设起点「'+span.textContent+'」，再点一个词确定范围结尾');
+      clearPendStart(); pendStart={pid, s, e}; paintPend(pid, s, e);
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点一个词确定范围结尾');
       return;
     }
     if(pendStart.s===s && pendStart.e===e){
-      // 第二次点了同一个词 → 取消起点
       clearPendStart();
       hint('已取消起点');
       return;
     }
-    // 第二次点击 → 用首尾包裹成范围
     const a=Math.min(pendStart.s, s), b=Math.max(pendStart.e, e);
     clearPendStart();
     return applyRange(pid, a, b);
@@ -548,9 +584,19 @@ function handleEditClick(pid, span){
 
   // ===== 无工具在手：点已标记处 → 编辑器/拾取器 =====
   if(hits.length===0){ hint('先在右侧选一个标记工具'); return; }
-  const exact=hits.find(m=>m.start===s&&m.end===e);
   if(hits.length===1){ openEditor(pid, hits[0]); return; }
   openPicker(pid, s, e, hits);
+}
+
+// 用绝对定位的高亮块标出“起点词”（只亮这个词，不亮整个 run）
+function paintPend(pid, s, e){
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  if(!p) return;
+  segmentsByOffset(p, s, e).forEach(rect=>{
+    const ov=document.createElement('div'); ov.className='pend-ov';
+    ov.style.left=rect.x+'px'; ov.style.top=rect.y+'px'; ov.style.width=rect.w+'px'; ov.style.height=rect.h+'px';
+    p.appendChild(ov);
+  });
 }
 function createMark(pid, s, e){
   const shape=activeShape, color=activeColor[shape]||DEF_COLOR[shape];
