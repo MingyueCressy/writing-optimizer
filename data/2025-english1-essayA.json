@@ -1,11 +1,12 @@
 {
   "meta": {
-    "title": "2025 考研英语（一）· 小作文（Part A 应用文）",
-    "subtitle": "回复邮件 ｜ 10 分 ｜ 约 100 词 ｜ 实际约 95 词",
+    "title": "2025 考研英语（一）",
+    "subtitle": "回复邮件　10 分　约 100 词　实际约 95 词",
     "score": "7 / 10",
     "scoreNote": "要点全覆盖、结构清晰；语言小错，无内容硬伤",
-    "source": "《考研英语万能模板.md》批阅基准",
-    "pages": 1
+    "source": "套用万能模板",
+    "pages": 1,
+    "title2": "小作文（Part A 应用文）"
   },
   "legend": [
     {
@@ -53,12 +54,12 @@
     {
       "type": "para",
       "id": "p1",
-      "text": "To enhance students' [[grammar:capabilities to craft-making|capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making。]] and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft [[grammar:demonstrate|词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。]] and willing to [[good:give a hand|地道，口语化恰当。]]"
+      "text": "To enhance students' [[grammar:capabilities to craft-making|capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making。]] and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft [[grammar:demonstrate|词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。]] and willing to [[good:give a hand|地道，口语化恰当。]]."
     },
     {
       "type": "para",
       "id": "p2",
-      "text": "The [[error:craftmen|拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！]] will show [[good:paper-cutting and bamboo weaving|具体、加分，符合“介绍内容”要求。]] Of course, there are other activities on the playground. [[note:Let me keep a little secret for you|俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。]]"
+      "text": "The [[error:craftmen|拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！]] will show [[good:paper-cutting and bamboo weaving|具体、加分，符合“介绍内容”要求。]] Of course, there are other activities on the playground. [[note:Let me keep a little secret for you|俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。]]."
     },
     {
       "type": "para",
