@@ -159,6 +159,15 @@
   body.viewing #tools{display:none}
   body.viewing #viewToggle{color:#bfe3c4}
   body.locked #viewToggle{display:none}
+  #modelBar{margin-top:26px;text-align:center;border-top:1px dashed #d9cfb8;padding-top:18px}
+  #btnModel{font-family:var(--font-serif);font-size:14px;color:#7a5a1e;background:linear-gradient(180deg,#fdf6e6,#f6ead0);border:1px solid #ddc99a;border-radius:8px;padding:8px 18px;cursor:pointer;letter-spacing:1px;transition:.15s}
+  #btnModel:hover{background:linear-gradient(180deg,#fdf0d5,#f2e2bf)}
+  #modelWrap{display:none;margin-top:16px;font-size:15.5px;line-height:2.0;color:#2b2721}
+  #modelWrap.show{display:block}
+  #modelWrap .modelTitle{font-family:var(--font-serif);font-size:13px;color:#a5641c;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eadfc6}
+  #modelWrap .modelBody p{margin:0 0 12px;text-indent:2em}
+  #modelWrap .modelBody p.salutation,#modelWrap .modelBody p.closing{text-indent:0}
+  #modelWrap .modelNote{margin-top:14px;font-size:12.5px;color:#8a7c5c;line-height:1.8;background:#faf6ec;border-left:3px solid #e0d3ae;padding:10px 14px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -181,6 +190,8 @@
           </div>
         </div>
         <div id="content"></div>
+        <div id="modelWrap"></div>
+        <div id="modelBar"><button id="btnModel" type="button">📖 查看范文</button></div>
       </div>
     </div>
     <div id="viewToggle" title="切换编辑 / 阅读视角">
@@ -230,7 +241,7 @@
   </div>
 </div>
 
-<script type="application/json" id="app-data">{"meta":{"title":"2025 考研英语（一）","subtitle":"回复邮件　10 分　约 100 词　实际约 95 词","score":"6 / 10","scoreNote":"要点全覆盖、结构清晰；语言小错，无内容硬伤，但信息量不足。","source":"套用万能模板","pages":1,"title2":"小作文（Part A 应用文）"},"legend":[{"key":"error","label":"错词圈","color":"#d3232f","desc":"拼写 / 用词错误"},{"key":"grammar","label":"句法波浪","color":"#e08a00","desc":"语法 / 词性 / 搭配错"},{"key":"good","label":"亮点高亮","color":"#2e9e4f","desc":"写得好的表达"},{"key":"fatal","label":"硬伤标记","color":"#ff4d2e","desc":"内容矛盾等致命扣分"},{"key":"template","label":"模板句式","color":"#2f6fd0","desc":"可套用的空壳句式"},{"key":"note","label":"纯批注","color":"#7b5cc4","desc":"只挂意见，不改文字"}],"blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","id":"p1","text":"To enhance students' capabilities to craft-making and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft demonstrate and willing to give a hand."},{"type":"para","id":"p2","text":"The craftmen will show paper-cutting and bamboo weaving. Of course, there are other activities on the playground. Let me keep a little secret for you."},{"type":"para","id":"p3","text":"You are willing to give a hand. We are so grateful. Can you help prepare seats and test audio equipment? We will gather at the school hall at 2 p.m. this Friday."},{"type":"para","id":"p4","text":"Looking forward to your reply."},{"type":"closing","text":"Yours, sincerely"},{"type":"closing","text":"Li Ming"}],"summary":{"dims":[{"name":"内容要点","text":"两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"},{"name":"语言","text":"小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making；均为可自纠的常见错"},{"name":"语域","text":"Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"},{"name":"格式","text":"有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"},{"name":"结构","text":"三段式清晰，缩进式格式可用 ✅"}],"priority":["语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in——熟悉即可全对","书信格式：Yours sincerely, 的标点规范","语域：俏皮表达换成实质内容（考试应用文求稳）"]},"recite":[{"wrong":"craftmen","right":"craftsmen（题干原文）"},{"wrong":"the craft demonstrate","right":"the craft demonstration / the crafts"},{"wrong":"capabilities to craft-making","right":"capabilities in craft-making"},{"wrong":"Yours, sincerely","right":"Yours sincerely,（中间无逗号、末尾逗号）"}],"marksMap":{"p1":[{"start":212,"end":223,"shape":"circle","color":"#d3232f","note":"词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。"},{"start":239,"end":250,"shape":"highlight","color":"#b7f0b1","note":"地道，口语化恰当。"},{"start":0,"end":169,"shape":"highlight","color":"#a8d8ff","note":""},{"start":34,"end":36,"shape":"circle","color":"#d3232f","note":"capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making。"}],"p2":[{"start":4,"end":12,"shape":"circle","color":"#d3232f","note":"拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！"},{"start":23,"end":55,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合“介绍内容”要求。"},{"start":114,"end":149,"shape":"strike","color":"#d3232f","note":"俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。"},{"start":150,"end":150,"shape":"insert","color":"#d3232f","note":"活动内容偏薄，除 paper-cutting / bamboo weaving 外可再补一个活动信息"},{"start":57,"end":112,"shape":"strike","color":"#d3232f","note":"尽量减少没有实质意义的内容"}],"p3":[{"start":0,"end":51,"shape":"strike","color":"#d3232f","note":"逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。"},{"start":52,"end":103,"shape":"highlight","color":"#ffe066","note":"📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。\n建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___."},{"start":65,"end":103,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合回答“what I can do”的要求。"},{"start":104,"end":104,"shape":"insert","color":"#d3232f","note":"\"What I can do\" 信息偏薄，可再加一个帮忙动作或展开说明"},{"start":113,"end":122,"shape":"highlight","color":"#b7f0b1","note":""}],"p4":[{"start":0,"end":30,"shape":"highlight","color":"#ffe066","note":"📌 标准结尾句式，全对。模板库 8.6 也推荐 I look forward to hearing from you."}],"p5":[{"start":0,"end":16,"shape":"circle","color":"#d3232f","note":"标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。"}]}}</script>
+<script type="application/json" id="app-data">{"meta":{"title":"2025 考研英语（一）","subtitle":"回复邮件　10 分　约 100 词　实际约 95 词","score":"6 / 10","scoreNote":"要点全覆盖、结构清晰；语言小错，无内容硬伤，但信息量不足。","source":"套用万能模板","pages":1,"title2":"小作文（Part A 应用文）"},"legend":[{"key":"error","label":"错词圈","color":"#d3232f","desc":"拼写 / 用词错误"},{"key":"grammar","label":"句法波浪","color":"#e08a00","desc":"语法 / 词性 / 搭配错"},{"key":"good","label":"亮点高亮","color":"#2e9e4f","desc":"写得好的表达"},{"key":"fatal","label":"硬伤标记","color":"#ff4d2e","desc":"内容矛盾等致命扣分"},{"key":"template","label":"模板句式","color":"#2f6fd0","desc":"可套用的空壳句式"},{"key":"note","label":"纯批注","color":"#7b5cc4","desc":"只挂意见，不改文字"}],"blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","id":"p1","text":"To enhance students' capabilities to craft-making and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft demonstrate and willing to give a hand."},{"type":"para","id":"p2","text":"The craftmen will show paper-cutting and bamboo weaving. Of course, there are other activities on the playground. Let me keep a little secret for you."},{"type":"para","id":"p3","text":"You are willing to give a hand. We are so grateful. Can you help prepare seats and test audio equipment? We will gather at the school hall at 2 p.m. this Friday."},{"type":"para","id":"p4","text":"Looking forward to your reply."},{"type":"closing","text":"Yours, sincerely"},{"type":"closing","text":"Li Ming"}],"summary":{"dims":[{"name":"内容要点","text":"两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"},{"name":"语言","text":"小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making；均为可自纠的常见错"},{"name":"语域","text":"Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"},{"name":"格式","text":"有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"},{"name":"结构","text":"三段式清晰，缩进式格式可用 ✅"}],"priority":["语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in——熟悉即可全对","书信格式：Yours sincerely, 的标点规范","语域：俏皮表达换成实质内容（考试应用文求稳）"]},"recite":[{"wrong":"craftmen","right":"craftsmen（题干原文）"},{"wrong":"the craft demonstrate","right":"the craft demonstration / the crafts"},{"wrong":"capabilities to craft-making","right":"capabilities in craft-making"},{"wrong":"Yours, sincerely","right":"Yours sincerely,（中间无逗号、末尾逗号）"}],"marksMap":{"p1":[{"start":212,"end":223,"shape":"circle","color":"#d3232f","note":"词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。"},{"start":239,"end":250,"shape":"highlight","color":"#b7f0b1","note":"地道，口语化恰当。"},{"start":0,"end":169,"shape":"highlight","color":"#a8d8ff","note":"万能模板套句：以“To enhance …, … will be held …”开篇点明活动目的、时间、地点，句式标准、信息完整，可直接复用。"},{"start":34,"end":36,"shape":"circle","color":"#d3232f","note":"capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making。"}],"p2":[{"start":4,"end":12,"shape":"circle","color":"#d3232f","note":"拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！"},{"start":23,"end":55,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合“介绍内容”要求。"},{"start":114,"end":149,"shape":"strike","color":"#d3232f","note":"俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。"},{"start":150,"end":150,"shape":"insert","color":"#d3232f","note":"活动内容偏薄，除 paper-cutting / bamboo weaving 外可再补一个活动信息"},{"start":57,"end":112,"shape":"strike","color":"#d3232f","note":"尽量减少没有实质意义的内容"}],"p3":[{"start":0,"end":51,"shape":"strike","color":"#d3232f","note":"逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。"},{"start":52,"end":103,"shape":"highlight","color":"#ffe066","note":"📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。\n建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___."},{"start":65,"end":103,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合回答“what I can do”的要求。"},{"start":104,"end":104,"shape":"insert","color":"#d3232f","note":"\"What I can do\" 信息偏薄，可再加一个帮忙动作或展开说明"},{"start":113,"end":122,"shape":"highlight","color":"#b7f0b1","note":"地道表达：gather at（集合于）为常见搭配，简洁自然，优于 meet together at 之类的累赘说法。"}],"p4":[{"start":0,"end":30,"shape":"highlight","color":"#ffe066","note":"📌 标准结尾句式，全对。模板库 8.6 也推荐 I look forward to hearing from you."}],"p5":[{"start":0,"end":16,"shape":"circle","color":"#d3232f","note":"标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。"}]},"model":{"title":"参考范文（综合批注意见修订）","blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","text":"To enhance students' capabilities in craft-making and enrich their extracurricular life, the craft-making activity will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft demonstration and willing to give a hand."},{"type":"para","text":"The craftsmen will show paper-cutting and bamboo weaving. There will also be clay-figure making and Chinese calligraphy."},{"type":"para","text":"Would you be able to assist with the preparation? We would appreciate it if you could help set up the seats and test the audio equipment beforehand. We will gather at the school hall at 2 p.m. this Friday."},{"type":"para","text":"I look forward to hearing from you."},{"type":"closing","text":"Yours sincerely,"},{"type":"closing","text":"Li Ming"}],"note":"修订要点：① 修正 craftmen→craftsmen、demonstrate→demonstration、capabilities to→capabilities in；② 删去“卖关子”句与无实质信息句，补入具体活动（clay-figure making、Chinese calligraphy），扩充内容；③ “请对方帮忙”改为 Would you be able to assist with …? / I would appreciate it if you could … 的礼貌软化句式，并补一句衔接；④ 结尾用 Yours sincerely,（中间无逗号、末尾逗号）。约 100 词，符合字数要求。"}}</script>
 <script>
 const SHAPES = [
   {key:'wave',      ic:'〰',  lb:'波浪',    cls:'mk-wave'},
@@ -311,8 +322,36 @@ function render(){
   document.body.classList.toggle('viewing', viewing);
   document.body.classList.toggle('draft', draft);
   buildTools(); syncToggle(); positionToggle();
+  renderModel();
   requestAnimationFrame(()=>drawOverlays());
 }
+// 范文层：DATA.model = {title, blocks:[{type,text}], note}
+function renderModel(){
+  const wrap=document.getElementById('modelWrap');
+  const bar=document.getElementById('modelBar');
+  const mod=DATA.model;
+  if(!mod || !mod.blocks || !mod.blocks.length){ bar.style.display='none'; wrap.innerHTML=''; return; }
+  bar.style.display='';
+  wrap.innerHTML='';
+  const t=document.createElement('div'); t.className='modelTitle'; t.textContent=mod.title||'范文';
+  wrap.appendChild(t);
+  const body=document.createElement('div'); body.className='modelBody';
+  mod.blocks.forEach(b=>{
+    const p=document.createElement('p');
+    if(b.type==='salutation') p.className='salutation';
+    if(b.type==='closing') p.className='closing';
+    p.textContent=b.text;
+    body.appendChild(p);
+  });
+  wrap.appendChild(body);
+  if(mod.note){ const n=document.createElement('div'); n.className='modelNote'; n.textContent=mod.note; wrap.appendChild(n); }
+}
+document.getElementById('btnModel').addEventListener('click', ()=>{
+  const wrap=document.getElementById('modelWrap');
+  const on=wrap.classList.toggle('show');
+  document.getElementById('btnModel').textContent = on ? '📖 收起范文' : '📖 查看范文';
+  if(on) setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),60);
+});
 function syncToggle(){
   const icon=document.getElementById('vtIcon'), label=document.getElementById('vtLabel');
   if(viewing){icon.textContent='✏️';label.textContent='切到编辑';}
@@ -586,14 +625,18 @@ function clearPendStart(){
 
 document.getElementById('content').addEventListener('click', e=>{
   if(suppressClick){ suppressClick=false; return; }
-  // 点插入符号（∇）→ 打开它对应的标记编辑器
+  // 点插入符号（∇）→ 编辑态开编辑器；阅读态显示批注气泡
   const sign=e.target.closest('.ins-sign');
   if(sign){
-    if(viewing||draft) return;
     const p=sign.closest('p'); const pid=p?p.dataset.pid:null;
     if(pid){
       const mk=(paraMarks[pid]||[]).find(x=>x.id===sign.dataset.mk);
-      if(mk){ e.stopPropagation(); openEditor(pid, mk); return; }
+      if(mk){
+        e.stopPropagation();
+        if(viewing){ flashMark(pid, mk); if(mk.note) showAnno(pid, mk); else hint('这条标记没有批注'); return; }
+        if(draft){ return; }
+        openEditor(pid, mk); return;
+      }
     }
     return;
   }
@@ -990,7 +1033,8 @@ function exportData(){
     summary:{dims:DATA.summary.dims, priority:DATA.summary.priority},
     recite:DATA.recite,
     blocks:DATA.blocks.map((b,idx)=>({type:b.type, id:'p'+idx, text:parsePara(b.text,'p'+idx).plain})),
-    marks
+    marks,
+    ...(DATA.model?{model:DATA.model}:{})
   };
 }
 function saveLocal(){
@@ -1020,6 +1064,7 @@ function applySummaryData(data){
   }
   if(data.recite) DATA.recite=data.recite;
   if(data.blocks) data.blocks.forEach((b,i)=>{ if(DATA.blocks[i]) DATA.blocks[i].text=b.text; });
+  if(data.model) DATA.model=data.model;
 }
 // 把导出的 marks 数据套回 paraMarks（按段落 id，重排 marks）
 function applyMarksData(marks){
