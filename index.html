@@ -56,6 +56,7 @@
   #content p.closing{margin:0 0 4px}
   .run{position:relative;cursor:pointer;border-radius:2px}
   body:not(.viewing):not(.draft) .run:hover{background:rgba(201,153,46,.16)}
+  .run.hit-flash{background:rgba(201,153,46,.30);box-shadow:0 0 0 1.5px #c9992e;border-radius:3px}
   .pend-ov{position:absolute;pointer-events:none;background:rgba(201,153,46,.30);box-shadow:0 0 0 1.5px #c9992e;border-radius:3px;z-index:3}
 
   .mk-wave{text-decoration:underline wavy;text-decoration-thickness:1.7px;text-underline-offset:5px}
@@ -691,15 +692,34 @@ function handleViewClick(pid, span){
   const hits=findMarks(pid, s, e);
   // 优先显示有批注的（最内层优先）
   const mk=hits.find(m=>m.note) || hits[0];
-  if(!mk||!mk.note){ hint('这里没有批注'); return; }
-  showAnno(span, mk);
+  if(!mk){ hint('这里没有批注'); return; }
+  // 高亮整条标记的范围（点词 → 选中它所属的完整标记）
+  flashMark(pid, mk);
+  if(!mk.note){ hint('这条标记没有批注（已高亮所属范围）'); return; }
+  showAnno(pid, mk);
 }
-function showAnno(span, mk){
+// 临时高亮某条标记覆盖的所有词（阅读态点词时用）
+function flashMark(pid, mk){
+  document.querySelectorAll('.run.hit-flash').forEach(r=>r.classList.remove('hit-flash'));
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  if(!p) return;
+  [...p.querySelectorAll('.run')].forEach(r=>{
+    const a=+r.dataset.start, b=+r.dataset.end;
+    if(a>=mk.start && b<=mk.end) r.classList.add('hit-flash');
+  });
+}
+function clearFlash(){ document.querySelectorAll('.run.hit-flash').forEach(r=>r.classList.remove('hit-flash')); }
+function showAnno(pid, mk){
+  const text=plainOf(pid).slice(mk.start, mk.end);   // 整条标记的文本，而非单个词
   const card=document.createElement('div'); card.className='anno show'; card.dataset.mk=mk.id;
-  card.innerHTML=`<span class="cite">${span.textContent}</span>${mk.note}`;
+  card.innerHTML=`<span class="cite">${text}</span>${mk.note}`;
   document.getElementById('paper').appendChild(card);
   const pr=document.getElementById('paper').getBoundingClientRect();
-  const er=span.getBoundingClientRect();
+  // 锚点：标记范围的第一个词
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  let anchor=null;
+  if(p){ anchor=[...p.querySelectorAll('.run')].find(r=>{const a=+r.dataset.start;return a>=mk.start && a<mk.end;}); }
+  const er=(anchor||p||document.getElementById('paper')).getBoundingClientRect();
   let left=er.right-pr.left+10, top=er.top-pr.top-4;
   if(left+270>pr.width) left=Math.max(6, er.left-pr.left-266);
   if(top<4) top=4;
@@ -707,7 +727,7 @@ function showAnno(span, mk){
   card.style.left=left+'px'; card.style.top=top+'px';
   openAnnoEl=card;
 }
-function hideAnno(){ if(openAnnoEl){openAnnoEl.remove();openAnnoEl=null;} }
+function hideAnno(){ if(openAnnoEl){openAnnoEl.remove();openAnnoEl=null;} clearFlash(); }
 document.getElementById('stage').addEventListener('click', e=>{
   if(e.target.closest('.run')||e.target.closest('.anno')||e.target.closest('#viewToggle')||e.target.closest('.tool')||e.target.closest('#swatch')||e.target.closest('#pScore')) return;
   hideAnno();
