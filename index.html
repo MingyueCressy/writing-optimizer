@@ -133,6 +133,10 @@
   .reclist b{color:#c31f2b;font-family:var(--font-serif)}
   .reclist i{color:#2e7d46;font-style:normal}
   .dimlabel{font-size:11px;letter-spacing:1px;color:#a5641c;margin:14px 0 2px;font-weight:700}
+  .sedit{border:1px solid #e3d9c4;border-radius:4px;background:#fffdf7;color:#2b2721;font-family:inherit;resize:vertical;outline:none}
+  .sedit:focus{border-color:#c9992e;box-shadow:0 0 0 2px #c9992e33}
+  .dimgroup{margin:6px 0 10px;padding:6px 8px;border:1px dashed #e3d9c4;border-radius:5px;background:#fbf7ee}
+  .dimgroup input{margin-bottom:4px}
 
   .pklist{display:flex;flex-direction:column;gap:7px;margin:8px 0 0}
   .pkitem{display:flex;align-items:center;gap:9px;border:1px solid #ddd2b8;background:#fffdf7;
@@ -769,6 +773,11 @@ function undo(){
 
 /* ==================== 总评 ==================== */
 function openSummary(){
+  // 阅读视角：只读展示
+  if(viewing){ renderSummaryReadonly(); return; }
+  renderSummaryEdit();
+}
+function renderSummaryReadonly(){
   const s=DATA.summary, m=DATA.meta;
   let html=`<h3>${m.title} · 总评</h3><div class="sub">得分预估 <b style="color:#c9992e">${m.score}</b>（${m.scoreNote}）</div>`;
   html+=`<div class="dimlabel">五维评价</div><table class="sumtable">`;
@@ -780,6 +789,55 @@ function openSummary(){
   html+=`</ul><div class="row"><button class="primary" onclick="document.getElementById('sumModal').classList.remove('show')">关闭</button></div>`;
   document.getElementById('sumBox').innerHTML=html;
   document.getElementById('sumModal').classList.add('show');
+}
+function renderSummaryEdit(){
+  const s=DATA.summary, m=DATA.meta;
+  let html=`<h3>${m.title} · 总评（可编辑）</h3>`;
+  html+=`<div class="dimlabel">得分预估</div>`;
+  html+=`<input class="sedit" id="seScore" value="${(m.score||'').replace(/"/g,'&quot;')}" placeholder="如 7 / 10" style="width:100%;box-sizing:border-box;font-size:14px;padding:6px 8px">`;
+  html+=`<div class="dimlabel">总评意见</div>`;
+  html+=`<textarea class="sedit" id="seNote" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${m.scoreNote||''}</textarea>`;
+
+  html+=`<div class="dimlabel">五维评价</div><div id="seDims">`;
+  s.dims.forEach((d,i)=>{
+    html+=`<div class="dimgroup"><input class="sedit sedim-name" data-i="${i}" value="${(d.name||'').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;font-size:12px;font-weight:700;padding:4px 6px">
+    <textarea class="sedit sedim-text" data-i="${i}" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;padding:4px 6px">${d.text||''}</textarea></div>`;
+  });
+  html+=`</div>`;
+
+  html+=`<div class="dimlabel">核心问题（按优先级，一行一条）</div>`;
+  html+=`<textarea class="sedit" id="sePriority" rows="4" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${(s.priority||[]).join('\n')}</textarea>`;
+
+  html+=`<div class="dimlabel">背诵清单（错处 → 正确，一行一条，用 “→” 分隔）</div>`;
+  html+=`<textarea class="sedit" id="seRecite" rows="4" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${(DATA.recite||[]).map(r=>r.wrong+' → '+r.right).join('\n')}</textarea>`;
+
+  html+=`<div class="row"><button id="seCancel">取消</button><button class="primary" id="seSave">保存</button></div>`;
+  document.getElementById('sumBox').innerHTML=html;
+  document.getElementById('sumModal').classList.add('show');
+
+  document.getElementById('seCancel').onclick=()=>document.getElementById('sumModal').classList.remove('show');
+  document.getElementById('seSave').onclick=saveSummaryEdit;
+}
+function saveSummaryEdit(){
+  DATA.meta.score=document.getElementById('seScore').value.trim();
+  DATA.meta.scoreNote=document.getElementById('seNote').value.trim();
+  // dims
+  document.querySelectorAll('#seDims .sedim-name').forEach(inp=>{
+    const i=+inp.dataset.i; DATA.summary.dims[i].name=inp.value.trim();
+  });
+  document.querySelectorAll('#seDims .sedim-text').forEach(ta=>{
+    const i=+ta.dataset.i; DATA.summary.dims[i].text=ta.value.trim();
+  });
+  // priority（一行一条，去空行）
+  DATA.summary.priority=document.getElementById('sePriority').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  // recite（一行一条，按 → 拆）
+  DATA.recite=document.getElementById('seRecite').value.split('\n').map(x=>x.trim()).filter(Boolean).map(line=>{
+    const parts=line.split(/\s*→\s*/);
+    return {wrong:(parts[0]||'').trim(), right:(parts.slice(1).join(' → ')||'').trim()};
+  });
+  document.getElementById('sumModal').classList.remove('show');
+  rerenderAndDraw();
+  hint('已保存总评（记得导出 JSON 与我更新）');
 }
 document.getElementById('sumModal').onclick=(e)=>{ if(e.target.id==='sumModal') e.target.classList.remove('show'); };
 document.getElementById('pickModal').onclick=(e)=>{ if(e.target.id==='pickModal') e.target.classList.remove('show'); };
@@ -798,9 +856,12 @@ function exportData(){
   });
   return {
     tool:'writing-optimizer',
-    version:3,
+    version:4,
     paper:DATA.meta.title,
     savedAt:new Date().toISOString(),
+    meta:{score:DATA.meta.score, scoreNote:DATA.meta.scoreNote},
+    summary:{dims:DATA.summary.dims, priority:DATA.summary.priority},
+    recite:DATA.recite,
     marks
   };
 }
@@ -815,8 +876,21 @@ function loadLocal(){
     const data=JSON.parse(raw);
     if(!data.marks) return false;
     applyMarksData(data.marks);
+    applySummaryData(data);
     return true;
   }catch(e){ return false; }
+}
+// 把导出的总评数据套回 DATA（meta/summary/recite）
+function applySummaryData(data){
+  if(data.meta){
+    if(data.meta.score!==undefined) DATA.meta.score=data.meta.score;
+    if(data.meta.scoreNote!==undefined) DATA.meta.scoreNote=data.meta.scoreNote;
+  }
+  if(data.summary){
+    if(data.summary.dims) DATA.summary.dims=data.summary.dims;
+    if(data.summary.priority) DATA.summary.priority=data.summary.priority;
+  }
+  if(data.recite) DATA.recite=data.recite;
 }
 // 把导出的 marks 数据套回 paraMarks（按段落 id，重排 marks）
 function applyMarksData(marks){
@@ -848,8 +922,9 @@ function importJSON(file){
       history.length=0;
       Object.keys(paraMarks).forEach(pid=>paraMarks[pid]=[]);
       applyMarksData(data.marks);
+      applySummaryData(data);
       rerenderAndDraw();
-      hint('已导入 '+(Object.values(data.marks).reduce((n,a)=>n+a.length,0))+' 条标记');
+      hint('已导入 '+(Object.values(data.marks).reduce((n,a)=>n+a.length,0))+' 条标记'+(data.summary?'（含总评）':''));
     }catch(e){ hint('导入失败：'+e.message); }
   };
   r.readAsText(file);
