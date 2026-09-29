@@ -978,7 +978,8 @@ function applyMarksData(marks){
 }
 function downloadJSON(){
   const data=exportData();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
   const a=document.createElement('a');
   const safe=(DATA.meta.title||'marks').replace(/[^\w\u4e00-\u9fa5·-]+/g,'_');
   a.href=URL.createObjectURL(blob);
@@ -986,6 +987,26 @@ function downloadJSON(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),3000);
   hint('已导出标记 JSON（'+Object.values(data.marks).reduce((n,a)=>n+a.length,0)+' 条标记）');
+  // 兜底：某些内置浏览器/App 会拦截下载 → 同时给一个 Base64 复制框（纯 ASCII，复制不乱码）
+  showExportFallback(safe, json);
+}
+function showExportFallback(safe, json){
+  const b64=btoa(unescape(encodeURIComponent(json)));
+  let html=`<h3>导出 JSON</h3>`;
+  html+=`<div class="sub">已尝试下载 <b>${safe}.marks.json</b>。若你的浏览器/App 没有真的下载文件，请复制下方 Base64（纯英文数字，复制不会乱码）发给酸奶学姐即可。</div>`;
+  html+=`<div class="dimlabel">① 原始 JSON（可直接另存为 .json 文件）</div>`;
+  html+=`<textarea class="sedit" rows="4" readonly style="width:100%;box-sizing:border-box;font-size:11px;padding:6px 8px">${json.replace(/</g,'&lt;')}</textarea>`;
+  html+=`<div class="dimlabel">② Base64 兜底（复制这一段，最稳）</div>`;
+  html+=`<textarea class="sedit" id="teB64" rows="4" readonly style="width:100%;box-sizing:border-box;font-size:11px;padding:6px 8px">${b64}</textarea>`;
+  html+=`<div class="row"><button id="teCopyB64" class="primary">复制 Base64</button><button id="teClose">关闭</button></div>`;
+  document.getElementById('teBox').innerHTML=html;
+  document.getElementById('textEditModal').classList.add('show');
+  document.getElementById('teClose').onclick=()=>document.getElementById('textEditModal').classList.remove('show');
+  document.getElementById('teCopyB64').onclick=()=>{
+    const ta=document.getElementById('teB64'); ta.select(); ta.setSelectionRange(0,ta.value.length);
+    try{ document.execCommand('copy'); hint('已复制 Base64，粘贴发我即可'); }
+    catch(e){ hint('复制失败，请手动全选复制'); }
+  };
 }
 function importJSON(file){
   const r=new FileReader();
