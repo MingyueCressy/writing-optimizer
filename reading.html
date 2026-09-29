@@ -389,6 +389,8 @@ function buildTools(){
   bSave.innerHTML=`<span class="ic">💾</span>`; bSave.onclick=(e)=>{e.stopPropagation();downloadJSON();}; t.appendChild(bSave);
   const bImp=document.createElement('div'); bImp.className='tool mini'; bImp.title='导入标记 JSON';
   bImp.innerHTML=`<span class="ic">📥</span>`; bImp.onclick=(e)=>{e.stopPropagation();document.getElementById('fileInput').click();}; t.appendChild(bImp);
+  const bTxt=document.createElement('div'); bTxt.className='tool mini'; bTxt.title='导入文本（粘贴纯文本，一行一段）';
+  bTxt.innerHTML=`<span class="ic">📝</span>`; bTxt.onclick=(e)=>{e.stopPropagation();openTextImport();}; t.appendChild(bTxt);
   if(restoredFromLocal){
     const bClr=document.createElement('div'); bClr.className='tool mini'; bClr.title='清空本地暂存';
     bClr.innerHTML=`<span class="ic">🗑</span>`; bClr.onclick=(e)=>{e.stopPropagation();clearLocal();}; t.appendChild(bClr);
@@ -735,11 +737,14 @@ function exportData(){
     const arr=paraMarks[pid]||[];
     if(arr.length) marks[pid]=arr.map(m=>({start:m.start,end:m.end,shape:m.shape,color:m.color,note:m.note}));
   });
+  const texts={};
+  DATA.blocks.forEach((b,idx)=>{ texts['p'+idx]=parsePara(b.text,'p'+idx).plain; });
   return {
     tool:'writing-optimizer',
     version:3,
     paper:DATA.meta.title,
     savedAt:new Date().toISOString(),
+    texts,
     marks
   };
 }
@@ -803,6 +808,27 @@ function rerenderAndDraw(){ render(); saveLocal(); }
 var _t=null;
 function hint(msg){ const h=document.getElementById('hint'); h.textContent=msg; h.classList.add('show'); clearTimeout(_t); _t=setTimeout(()=>h.classList.remove('show'),1900); }
 
+
+/* ===== 精读版扩展：导入文本（一行一段） ===== */
+function openTextImport(){
+  const cur=DATA.blocks.map(b=>b.text).join('\n');
+  const raw=prompt('粘贴纯文本（一行一段，空行会忽略；标点请自备）：',cur);
+  if(raw===null) return;
+  const lines=raw.split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.trim()!=='');
+  if(!lines.length){ hint('没有有效文本'); return; }
+  DATA.blocks=lines.map((line,i)=>{
+    let type='para';
+    if(i===0 && /^[A-Z][a-z]+[ ,]/.test(line)) type='salutation';
+    return {type, id:'p'+i, text:line};
+  });
+  Object.keys(paraMarks).forEach(k=>delete paraMarks[k]);
+  history.length=0;
+  try{ localStorage.removeItem(paperKey()); }catch(e){}
+  rerenderAndDraw();
+  hint('已导入 '+lines.length+' 段');
+}
+
+/* ===== 精读版扩展：导出附带正文快照 texts ===== */
 /* ==================== 视角切换 ==================== */
 document.getElementById('viewToggle').onclick=()=>{
   viewing=!viewing; if(viewing){activeShape=null;hideAnno();}

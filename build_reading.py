@@ -142,5 +142,44 @@ html=html.replace(
   "  if(!marks.length){\n    tokenize(plain).forEach(tk=>{\n      const span=document.createElement('span'); span.className='run'; span.textContent=tk.text;\n      span.dataset.pid=pid; span.dataset.start=tk.s; span.dataset.end=tk.e;\n      frag.appendChild(span);\n    });\n    return frag;\n  }"
 )
 
+# ---------- 8c. 精读版：加「导入文本」按钮 ----------
+html=html.replace(
+  "}; t.appendChild(bImp);\n  if(restoredFromLocal){",
+  "}; t.appendChild(bImp);\n"
+  "  const bTxt=document.createElement('div'); bTxt.className='tool mini'; bTxt.title='导入文本（粘贴纯文本，一行一段）';\n"
+  "  bTxt.innerHTML=`<span class=\"ic\">📝</span>`; bTxt.onclick=(e)=>{e.stopPropagation();openTextImport();}; t.appendChild(bTxt);\n"
+  "  if(restoredFromLocal){"
+)
+
+# ---------- 8d. 精读版：openTextImport 函数 + texts 快照 ----------
+extra_js = r"""
+/* ===== 精读版扩展：导入文本（一行一段） ===== */
+function openTextImport(){
+  const cur=DATA.blocks.map(b=>b.text).join('\n');
+  const raw=prompt('粘贴纯文本（一行一段，空行会忽略；标点请自备）：',cur);
+  if(raw===null) return;
+  const lines=raw.split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.trim()!=='');
+  if(!lines.length){ hint('没有有效文本'); return; }
+  DATA.blocks=lines.map((line,i)=>{
+    let type='para';
+    if(i===0 && /^[A-Z][a-z]+[ ,]/.test(line)) type='salutation';
+    return {type, id:'p'+i, text:line};
+  });
+  Object.keys(paraMarks).forEach(k=>delete paraMarks[k]);
+  history.length=0;
+  try{ localStorage.removeItem(paperKey()); }catch(e){}
+  rerenderAndDraw();
+  hint('已导入 '+lines.length+' 段');
+}
+
+/* ===== 精读版扩展：导出附带正文快照 texts ===== */"""
+html=html.replace("/* ==================== 视角切换 ==================== */", extra_js+"\n/* ==================== 视角切换 ==================== */", 1)
+
+# exportData 里加 texts 快照
+html=html.replace(
+  "  return {\n    tool:'writing-optimizer',\n    version:3,\n    paper:DATA.meta.title,\n    savedAt:new Date().toISOString(),\n    marks\n  };",
+  "  const texts={};\n  DATA.blocks.forEach((b,idx)=>{ texts['p'+idx]=parsePara(b.text,'p'+idx).plain; });\n  return {\n    tool:'writing-optimizer',\n    version:3,\n    paper:DATA.meta.title,\n    savedAt:new Date().toISOString(),\n    texts,\n    marks\n  };"
+)
+
 open(OUT,'w',encoding='utf-8').write(html)
 print("written", OUT, len(html), "bytes")
