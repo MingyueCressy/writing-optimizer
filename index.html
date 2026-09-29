@@ -215,6 +215,10 @@
   <div class="box" id="sumBox"></div>
 </div>
 
+<div class="modal" id="textEditModal">
+  <div class="box" id="teBox"></div>
+</div>
+
 <div class="modal" id="pickModal">
   <div class="box" style="width:min(420px,94vw)">
     <h3>这里有重叠的标记</h3>
@@ -425,7 +429,7 @@ function buildTools(){
     t.appendChild(bOff);
   }
   const sep=document.createElement('div'); sep.className='tsep'; t.appendChild(sep);
-  [['btnUndo','↩','撤销',undo],['btnDraft','📄','清样版',()=>{draft=true;render();hint('清样版：去掉所有标记');}],['btnSum','📋','总评',openSummary]]
+  [['btnUndo','↩','撤销',undo],['btnDraft','📄','清样版',()=>{draft=true;render();hint('清样版：去掉所有标记');}],['btnSum','📋','总评',openSummary],['btnEditText','✎','编辑原文（修转录错误）',openTextEdit]]
     .forEach(([id,ic,l,fn])=>{const d=document.createElement('div');d.className='tool mini';d.id=id;d.title=l;d.innerHTML=`<span class="ic">${ic}</span>`;d.onclick=(e)=>{e.stopPropagation();fn();};t.appendChild(d);});
   const sep2=document.createElement('div'); sep2.className='tsep'; t.appendChild(sep2);
   const bSave=document.createElement('div'); bSave.className='tool mini'; bSave.id='btnExport';
@@ -839,6 +843,54 @@ function saveSummaryEdit(){
   rerenderAndDraw();
   hint('已保存总评（记得导出 JSON 与我更新）');
 }
+
+/* ==================== 编辑原文（修转录错误） ==================== */
+function openTextEdit(){
+  let html=`<h3>编辑原文</h3><div class="sub">修改转录错误；保存后自动平移标记位置，请复核</div>`;
+  DATA.blocks.forEach((b,idx)=>{
+    const pid='p'+idx;
+    const plain=parsePara(b.text, pid).plain;
+    html+=`<div class="dimlabel">第 ${idx+1} 段（${b.type}）</div>`;
+    html+=`<textarea class="sedit tebox" data-i="${idx}" rows="3" style="width:100%;box-sizing:border-box;font-size:13px;padding:6px 8px">${plain}</textarea>`;
+  });
+  html+=`<div class="row"><button id="teCancel">取消</button><button class="primary" id="teSave">保存原文</button></div>`;
+  document.getElementById('teBox').innerHTML=html;
+  document.getElementById('textEditModal').classList.add('show');
+  document.getElementById('teCancel').onclick=()=>document.getElementById('textEditModal').classList.remove('show');
+  document.getElementById('teSave').onclick=saveTextEdit;
+}
+// 公共前缀长度
+function commonPrefix(a,b){ let i=0; const n=Math.min(a.length,b.length); while(i<n && a[i]===b[i]) i++; return i; }
+// 公共后缀长度（不与前缀重叠）
+function commonSuffix(a,b,pfx){ let i=0; const n=Math.min(a.length,b.length)-pfx; while(i<n && a[a.length-1-i]===b[b.length-1-i]) i++; return i; }
+function saveTextEdit(){
+  let moved=0, needCheck=0;
+  document.querySelectorAll('#teBox .tebox').forEach(ta=>{
+    const idx=+ta.dataset.i;
+    const pid='p'+idx;
+    const oldPlain=parsePara(DATA.blocks[idx].text, pid).plain;
+    const newPlain=ta.value;
+    if(oldPlain===newPlain) return;
+    const pfx=commonPrefix(oldPlain,newPlain);
+    const sfx=commonSuffix(oldPlain,newPlain,pfx);
+    const delta=newPlain.length-oldPlain.length;
+    const tailStart=oldPlain.length-sfx;  // 改动点 = [pfx, tailStart) 区间被替换
+    const arr=paraMarks[pid]||[];
+    arr.forEach(m=>{
+      if(m.end<=pfx){ /* 改动点之前：不动 */ }
+      else if(m.start>=tailStart){ m.start+=delta; m.end+=delta; moved++; }
+      else { needCheck++; } // 跨改动点：保留原位，提示复核
+    });
+    DATA.blocks[idx].text=newPlain;
+  });
+  document.getElementById('textEditModal').classList.remove('show');
+  rerenderAndDraw();
+  let msg='已保存原文';
+  if(moved) msg+=`，平移 ${moved} 个标记`;
+  if(needCheck) msg+=`；⚠️ ${needCheck} 个标记跨改动点，请复核`;
+  hint(msg);
+}
+document.getElementById('textEditModal').onclick=(e)=>{ if(e.target.id==='textEditModal') e.target.classList.remove('show'); };
 document.getElementById('sumModal').onclick=(e)=>{ if(e.target.id==='sumModal') e.target.classList.remove('show'); };
 document.getElementById('pickModal').onclick=(e)=>{ if(e.target.id==='pickModal') e.target.classList.remove('show'); };
 document.getElementById('pkCancel').onclick=closePicker;
@@ -862,6 +914,7 @@ function exportData(){
     meta:{score:DATA.meta.score, scoreNote:DATA.meta.scoreNote},
     summary:{dims:DATA.summary.dims, priority:DATA.summary.priority},
     recite:DATA.recite,
+    blocks:DATA.blocks.map((b,idx)=>({type:b.type, id:'p'+idx, text:parsePara(b.text,'p'+idx).plain})),
     marks
   };
 }
@@ -891,6 +944,7 @@ function applySummaryData(data){
     if(data.summary.priority) DATA.summary.priority=data.summary.priority;
   }
   if(data.recite) DATA.recite=data.recite;
+  if(data.blocks) data.blocks.forEach((b,i)=>{ if(DATA.blocks[i]) DATA.blocks[i].text=b.text; });
 }
 // 把导出的 marks 数据套回 paraMarks（按段落 id，重排 marks）
 function applyMarksData(marks){
