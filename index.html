@@ -598,18 +598,18 @@ function handleEditClick(pid, span, ev){
     if(!pendStart){
       pendStart={pid, s, e};
       paintPend(pid, s, e);
-      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点一个词确定范围结尾');
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点另一个词=范围，同词再点=只标这个词');
       return;
     }
     if(pendStart.pid!==pid){
       clearPendStart(); pendStart={pid, s, e}; paintPend(pid, s, e);
-      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点一个词确定范围结尾');
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点另一个词=范围，同词再点=只标这个词');
       return;
     }
     if(pendStart.s===s && pendStart.e===e){
+      // 同词再点 = 直接标这一个词（单念标记），而不是取消
       clearPendStart();
-      hint('已取消起点');
-      return;
+      return applyRange(pid, s, e);
     }
     const a=Math.min(pendStart.s, s), b=Math.max(pendStart.e, e);
     clearPendStart();
