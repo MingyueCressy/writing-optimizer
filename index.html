@@ -63,6 +63,7 @@
   .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
   .mk-double{text-decoration:underline double;text-decoration-thickness:3px;text-underline-offset:5px}
   .mk-strike{text-decoration:line-through;text-decoration-thickness:1.7px}
+  .ins-sign{display:inline-block;font-size:15px;font-weight:700;line-height:1;vertical-align:super;transform:translateY(-1px);margin:0 1px;cursor:pointer;font-family:Georgia,serif}
 
   .overlay{position:absolute;z-index:1;pointer-events:none}
   .mk-circle-svg path{fill:none;stroke-width:2.2;stroke-linecap:round}
@@ -239,6 +240,7 @@ const SHAPES = [
   {key:'underline', ic:'_',  lb:'下划线',  cls:'mk-underline'},
   {key:'double',    ic:'=',  lb:'双下划线',cls:'mk-double'},
   {key:'strike',    ic:'S̶',  lb:'删除线',  cls:'mk-strike'},
+  {key:'insert',    ic:'∇',   lb:'补充信息',cls:'mk-insert'},
 ];
 const PALETTES = {
   wave:['#d3232f','#e08a00','#2f6fd0','#7b5cc4'],
@@ -248,8 +250,9 @@ const PALETTES = {
   underline:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
   double:['#d3232f','#2e9e4f','#7b5cc4','#2f6fd0','#2b2721'],
   strike:['#d3232f','#e08a00','#2e9e4f','#2b2721'],
+  insert:['#d3232f'],
 };
-const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',box:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0',strike:'#d3232f'};
+const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',box:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0',strike:'#d3232f',insert:'#d3232f'};
 
 let DATA=null;
 let paraMarks={};
@@ -334,10 +337,13 @@ function tokenize(text){
 function buildParaContent(pid, plain, marks){
   const frag=document.createDocumentFragment();
   if(!marks.length){frag.appendChild(document.createTextNode(plain));return frag;}
+  const insMarks=marks.filter(m=>m.shape==='insert');
+  const regMarks=marks.filter(m=>m.shape!=='insert');
   const bounds=new Set([0,plain.length]);
-  marks.forEach(mk=>{bounds.add(mk.start);bounds.add(mk.end);});
+  regMarks.forEach(mk=>{bounds.add(mk.start);bounds.add(mk.end);});
   const pts=[...bounds].sort((a,b)=>a-b);
   const spans=[];
+  const posEls={};  // 偏移 -> 插入点标记元素（用于把 ∇ 放到正确位置）
   for(let k=0;k<pts.length-1;k++){
     const s=pts[k], e=pts[k+1]; if(s===e) continue;
     // 先把 [s,e) 按标记边界切出一段，再按词细分成子 span
@@ -348,7 +354,7 @@ function buildParaContent(pid, plain, marks){
       frag.appendChild(span); spans.push({s:s+tk.s, e:s+tk.e, el:span});
     });
   }
-  marks.forEach(mk=>{
+  regMarks.forEach(mk=>{
     const shape=mk.shape, cls=(SHAPES.find(x=>x.key===shape)||{}).cls;
     if(shape==='circle'||shape==='box'){}
     else if(shape==='highlight'){
@@ -357,6 +363,25 @@ function buildParaContent(pid, plain, marks){
       spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add(cls);sp.el.style.textDecorationColor=mk.color;sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
     }
   });
+  // 插入型标记（∇ 补充）：在指定偏移处插一个红色倒 V 符号
+  insMarks.forEach(mk=>{
+    const sign=document.createElement('span');
+    sign.className='ins-sign'; sign.textContent='∇';
+    sign.dataset.ins='1'; sign.dataset.mk=mk.id;
+    sign.style.color=mk.color||'#d3232f';
+    sign.title=mk.note||'此处需补充信息';
+    posEls[mk.start]=sign;
+  });
+  // 把插入符号按偏移放到 span 序列里（找不到精确位置就落到最近的前一个 span 之后）
+  if(insMarks.length){
+    const sorted=Object.keys(posEls).map(Number).sort((a,b)=>a-b);
+    sorted.forEach(pos=>{
+      const sign=posEls[pos];
+      const after=[...spans].reverse().find(sp=>sp.e<=pos) || null;
+      if(after && after.el.parentNode) after.el.parentNode.insertBefore(sign, after.el.nextSibling);
+      else frag.insertBefore(sign, frag.firstChild);
+    });
+  }
   circleBoxQueue=circleBoxQueue.concat(marks.filter(m=>m.shape==='circle'||m.shape==='box').map(m=>({pid,m})));
   return frag;
 }
@@ -561,6 +586,17 @@ function clearPendStart(){
 
 document.getElementById('content').addEventListener('click', e=>{
   if(suppressClick){ suppressClick=false; return; }
+  // 点插入符号（∇）→ 打开它对应的标记编辑器
+  const sign=e.target.closest('.ins-sign');
+  if(sign){
+    if(viewing||draft) return;
+    const p=sign.closest('p'); const pid=p?p.dataset.pid:null;
+    if(pid){
+      const mk=(paraMarks[pid]||[]).find(x=>x.id===sign.dataset.mk);
+      if(mk){ e.stopPropagation(); openEditor(pid, mk); return; }
+    }
+    return;
+  }
   const span=e.target.closest('.run');
   if(!span){ hideAnno(); clearPendStart(); return; }
   const pid=span.dataset.pid;
@@ -605,6 +641,20 @@ function handleEditClick(pid, span, ev){
   // 否则忽略（无工具时）；有工具时以该位置为准
   const isBlank=/^\s*$/.test(tok);
   const hits=findMarks(pid, s, e);
+
+  // ===== 补充信息（∇）：点标点/词，在该 token 末尾插入一个零长度标记 =====
+  if(activeShape==='insert'){
+    const pos=e; // 插在点击 token 之后（即标点后）
+    const exist=(paraMarks[pid]||[]).some(m=>m.shape==='insert' && m.start===pos);
+    if(exist){ hint('这里已经有一个补充标记了'); return; }
+    const mk={id:'m'+(sid++), start:pos, end:pos, shape:'insert', color:activeColor['insert']||DEF_COLOR['insert'], note:''};
+    history.push({type:'add', pid, ids:[mk.id]});
+    if(!paraMarks[pid]) paraMarks[pid]=[];
+    paraMarks[pid].push(mk);
+    rerenderAndDraw();
+    openEditor(pid, mk, true);
+    return;
+  }
 
   // ===== B(a) 首尾点选：有工具在手时，两次点击定一个范围 =====
   if(activeShape){
@@ -745,7 +795,7 @@ function openEditor(pid, mk, isNew){
   const m=paraMarks[pid].find(x=>x.id===mk.id);
   const text=plainOf(pid).slice(m.start, m.end);
   document.getElementById('emTitle').textContent = isNew?'新建标记':'编辑标记';
-  document.getElementById('emCite').textContent = `「${text}」`;
+  document.getElementById('emCite').textContent = text ? `「${text}」` : '（此位置补充信息 ∇）';
   document.getElementById('emText').value = m.note||'';
   renderShapeBtns(m.shape);
   renderColorDots(m.shape, m.color);
