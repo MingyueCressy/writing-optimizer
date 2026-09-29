@@ -244,7 +244,6 @@
 const SHAPES = [
   {key:'wave',      ic:'〰',  lb:'波浪',    cls:'mk-wave'},
   {key:'circle',    ic:'◯',  lb:'圈',      cls:'mk-circle'},
-  {key:'box',       ic:'▭',  lb:'矩形框',  cls:'mk-box'},
   {key:'highlight', ic:'▨',  lb:'高亮',    cls:'mk-highlight'},
   {key:'underline', ic:'_',  lb:'下划线',  cls:'mk-underline'},
   {key:'double',    ic:'=',  lb:'双下划线',cls:'mk-double'},
@@ -254,14 +253,13 @@ const SHAPES = [
 const PALETTES = {
   wave:['#d3232f','#e08a00','#2f6fd0','#7b5cc4'],
   circle:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
-  box:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
   highlight:['#ffe066','#b7f0b1','#a8d8ff','#ffc2d1'],
   underline:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
   double:['#d3232f','#2e9e4f','#7b5cc4','#2f6fd0','#2b2721'],
   strike:['#d3232f','#e08a00','#2e9e4f','#2b2721'],
   insert:['#d3232f'],
 };
-const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',box:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0',strike:'#d3232f',insert:'#d3232f'};
+const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0',strike:'#d3232f',insert:'#d3232f'};
 
 let DATA=null;
 let paraMarks={};
@@ -384,7 +382,7 @@ function buildParaContent(pid, plain, marks){
   }
   regMarks.forEach(mk=>{
     const shape=mk.shape, cls=(SHAPES.find(x=>x.key===shape)||{}).cls;
-    if(shape==='circle'||shape==='box'){}
+    if(shape==='circle'){}
     else if(shape==='highlight'){
       spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add('mk-highlight-span');sp.el.style.background=hexA(mk.color,.55);sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
     } else {
@@ -410,7 +408,7 @@ function buildParaContent(pid, plain, marks){
       else frag.insertBefore(sign, frag.firstChild);
     });
   }
-  circleBoxQueue=circleBoxQueue.concat(marks.filter(m=>m.shape==='circle'||m.shape==='box').map(m=>({pid,m})));
+  circleBoxQueue=circleBoxQueue.concat(marks.filter(m=>m.shape==='circle').map(m=>({pid,m})));
   return frag;
 }
 function drawOverlays(){
@@ -418,17 +416,16 @@ function drawOverlays(){
   document.querySelectorAll('#content p').forEach(p=>{
     const pid=p.dataset.pid;
     (paraMarks[pid]||[]).forEach(m=>{
-      if(m.shape!=='circle'&&m.shape!=='box') return;
+      if(m.shape!=='circle') return;
       const rects=segmentsByOffset(p, m.start, m.end);
       if(!rects.length) return;
-      // 圆圈/方框：合并所有碎片为一个大包围盒（整段框一次，而非每词一个）
+      // 圆圈：合并所有碎片为一个大包围盒（整段圈一次，而非每词一个）
       const minX=Math.min(...rects.map(r=>r.x)), minY=Math.min(...rects.map(r=>r.y));
       const maxX=Math.max(...rects.map(r=>r.x+r.w)), maxY=Math.max(...rects.map(r=>r.y+r.h));
       const bb={x:minX, y:minY, w:maxX-minX, h:maxY-minY};
       const ov=document.createElement('div'); ov.className='overlay';
       ov.style.left=bb.x+'px'; ov.style.top=bb.y+'px'; ov.style.width=bb.w+'px'; ov.style.height=bb.h+'px';
-      if(m.shape==='box') ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><rect x="1" y="1" width="${Math.max(2,bb.w-2)}" height="${Math.max(2,bb.h-2)}" rx="3" fill="none" stroke="${m.color}"/></svg>`;
-      else ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(bb.w,bb.h)}"/></svg>`;
+      ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(bb.w,bb.h)}"/></svg>`;
       p.appendChild(ov);
     });
   });
