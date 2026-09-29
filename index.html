@@ -402,9 +402,24 @@ function buildTools(){
     const col=activeColor[s.key]||DEF_COLOR[s.key];
     d.title=s.lb;
     d.innerHTML=`<span class="ic" style="color:${col}">${s.ic}</span><span class="dot" style="background:${col}"></span>`;
-    d.onclick=(e)=>{e.stopPropagation();openSwatch(s.key,d);};
+    d.onclick=(e)=>{
+      e.stopPropagation();
+      // 再点已激活的工具 = 取消选中（换色请先取消再点，或直接选别的工具）
+      if(activeShape===s.key){
+        activeShape=null; clearPendStart();
+        hint('已取消工具选中（现在点词=查看/修改该处标记）'); buildTools(); return;
+      }
+      openSwatch(s.key,d);
+    };
     t.appendChild(d);
   });
+  // 顶部“取消选中”按钮：仅在有工具激活时出现
+  if(activeShape){
+    const bOff=document.createElement('div'); bOff.className='tool mini'; bOff.id='btnUnselect';
+    bOff.title='取消选中（退出工具）'; bOff.innerHTML=`<span class="ic">✕</span>`;
+    bOff.onclick=(e)=>{e.stopPropagation();activeShape=null;clearPendStart();hint('已取消工具选中（现在点词=查看/修改该处标记）');buildTools();};
+    t.appendChild(bOff);
+  }
   const sep=document.createElement('div'); sep.className='tsep'; t.appendChild(sep);
   [['btnUndo','↩','撤销',undo],['btnDraft','📄','清样版',()=>{draft=true;render();hint('清样版：去掉所有标记');}],['btnSum','📋','总评',openSummary]]
     .forEach(([id,ic,l,fn])=>{const d=document.createElement('div');d.className='tool mini';d.id=id;d.title=l;d.innerHTML=`<span class="ic">${ic}</span>`;d.onclick=(e)=>{e.stopPropagation();fn();};t.appendChild(d);});
@@ -601,8 +616,12 @@ function handleEditClick(pid, span, ev){
     return applyRange(pid, a, b);
   }
 
-  // ===== 无工具在手：点已标记处 → 编辑器/拾取器 =====
-  if(hits.length===0){ if(!isBlank) hint('先在右侧选一个标记工具'); return; }
+  // ===== 无工具在手：点已标记处 → 编辑器/拾取器；无标记 → 轻提示 =====
+  if(hits.length===0){
+    if(isBlank) return;
+    hint('「'+tok+'」这里没有标记（要加标记请先在右侧选工具）');
+    return;
+  }
   if(hits.length===1){ openEditor(pid, hits[0]); return; }
   openPicker(pid, s, e, hits);
 }
