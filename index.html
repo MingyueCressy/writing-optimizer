@@ -63,26 +63,29 @@
   .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
   .mk-double{text-decoration:underline double;text-decoration-thickness:3px;text-underline-offset:5px}
   .mk-strike{text-decoration:line-through;text-decoration-thickness:1.7px}
-  .ins-sign{display:inline-block;font-size:15px;font-weight:700;line-height:1;vertical-align:super;transform:translateY(-1px);margin:0 1px;cursor:pointer;font-family:Georgia,serif}
+  .ins-sign{display:inline-block;font-size:22px;font-weight:700;line-height:1;vertical-align:super;transform:translateY(-2px);margin:0 -2px;cursor:pointer;font-family:Georgia,serif;
+    min-width:2ch;text-align:center;padding:0 4px;box-sizing:content-box}
 
   .overlay{position:absolute;z-index:1;pointer-events:none}
 
-  .anno{position:absolute;z-index:40;max-width:260px;
+  .anno{position:absolute;z-index:40;max-width:min(300px,86vw);
     background:#fffdf6;border:1px solid #e0d6bd;border-left:4px solid #999;border-radius:6px;
-    padding:8px 11px;font-size:12px;line-height:1.65;color:#332e26;
+    padding:9px 12px;font-size:15.5px;line-height:1.7;color:#332e26;
     box-shadow:0 8px 26px rgba(0,0,0,.28);pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s}
   .anno.show{opacity:1;transform:none}
-  .anno .cite{font-family:var(--font-serif);font-style:italic;color:#a5641c;display:block;margin-bottom:3px;font-size:11.5px}
+  .anno .cite{font-family:var(--font-serif);font-style:italic;color:#a5641c;display:block;margin-bottom:4px;font-size:14.5px}
 
-  #tools{flex:0 0 62px;background:linear-gradient(180deg,var(--tool-bg) 0%,var(--tool-bg2) 100%);
+  #tools{flex:0 0 68px;background:linear-gradient(180deg,var(--tool-bg) 0%,var(--tool-bg2) 100%);
     border-left:1px solid #0c0f13;display:flex;flex-direction:column;align-items:center;
-    padding:12px 8px;gap:7px;overflow-y:auto}
-  .tool{width:44px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    padding:12px 6px;gap:7px;overflow-y:auto}
+  .tool{width:56px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     background:#313845;border:1px solid var(--tool-line);border-radius:8px;padding:4px 2px;
     color:#cfd6e0;cursor:pointer;transition:.13s;user-select:none;position:relative}
   .tool:hover{background:#3c4653;transform:translateY(-1px)}
   .tool.active{background:var(--accent);border-color:#e8bd57;color:#1c1508;box-shadow:0 0 0 2px rgba(201,153,46,.35)}
-  .tool .ic{font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .tool .ic{font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .tool .tlbl{font-size:9.5px;line-height:1;color:#b9c2cf;white-space:nowrap;letter-spacing:.2px;margin-top:1px}
+  .tool.active .tlbl{color:#1c1508;font-weight:600}
   .tool .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #ffffff66}
   .tsep{width:34px;height:1px;background:var(--tool-line);margin:4px 0}
   .tool.mini{height:36px}
@@ -459,7 +462,7 @@ function buildTools(){
     const d=document.createElement('div'); d.className='tool'+(activeShape===s.key?' active':''); d.dataset.shape=s.key;
     const col=activeColor[s.key]||DEF_COLOR[s.key];
     d.title=s.lb;
-    d.innerHTML=`<span class="ic" style="color:${col}">${s.ic}</span><span class="dot" style="background:${col}"></span>`;
+    d.innerHTML=`<span class="ic" style="color:${col}">${s.ic}</span><span class="tlbl">${s.lb}</span>`;
     d.onclick=(e)=>{
       e.stopPropagation();
       // 再点已激活的工具 = 取消选中（换色请先取消再点，或直接选别的工具）
