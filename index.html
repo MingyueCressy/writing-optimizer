@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作文批阅工作台</title>
+<style>
+  :root{
+    --paper:#f6f0e2; --paper-line:#e3d9c4; --ink:#2b2721; --ink-soft:#6b6459;
+    --tool-bg:#262b33; --tool-bg2:#1c2027; --tool-line:#3a424e; --accent:#c9992e;
+    --font-serif: Georgia, "Times New Roman", "Songti SC", serif;
+    --font-note: "Source Han Sans SC","思源黑体","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--paper);font-family:var(--font-note);color:var(--ink)}
+  #app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+
+  #stage{flex:1;display:flex;flex-direction:column;padding:0;overflow:auto;position:relative}
+  #viewToggle{position:fixed;bottom:18px;left:50%;transform:translateX(calc(-50% + var(--vt-shift,0px)));z-index:60;
+    display:flex;align-items:center;gap:6px;background:rgba(28,32,39,.92);
+    border:1px solid #3a424e;border-radius:20px;padding:6px 12px 6px 10px;
+    color:#e7d9b4;font-size:12px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);
+    transition:.15s;user-select:none}
+  #viewToggle:hover{background:#3c4653;transform:translateX(calc(-50% + var(--vt-shift,0px))) translateY(-1px)}
+  #viewToggle .vic{font-size:15px;line-height:1}
+
+  #paperWrap{display:flex;flex-direction:column;align-items:stretch;width:100%;flex:1;min-height:100%}
+  #paper{
+    position:relative;width:100%;max-width:100%;
+    background:linear-gradient(180deg,#f8f3e7 0%,var(--paper) 100%);
+    border-radius:0;box-shadow:none;
+    padding:46px 40px 48px;overflow:visible;flex:1;
+  }
+  #paper::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:0;
+    background-image:radial-gradient(rgba(0,0,0,.025) 1px, transparent 1px);
+    background-size:3px 3px;mix-blend-mode:multiply;opacity:.5}
+  #paperHead{position:relative;z-index:2;border-bottom:1.5px solid var(--paper-line);padding-bottom:12px;margin-bottom:18px}
+  #headRow1{display:flex;align-items:center;gap:14px}
+  #headA{flex:1 1 auto;min-width:0;text-align:center}
+  #pTitle{font-family:var(--font-serif);font-size:19px;font-weight:700;color:#241f18;line-height:1.3;white-space:nowrap}
+  #pTitle2{font-family:var(--font-serif);font-size:19px;font-weight:700;color:#241f18;line-height:1.3;white-space:nowrap}
+  #headB{flex:0 0 auto;width:112px;text-align:center}
+  #pScore{cursor:default}
+  #pScore.clickable{cursor:pointer}
+  #pScore.clickable:hover b{text-decoration:underline}
+  #pScore b{font-family:var(--font-serif);font-size:23px;color:var(--accent);display:block;line-height:1.05}
+  #pScore span{font-size:10px;color:var(--ink-soft);display:block;margin-top:4px;line-height:1.35}
+  #pScore .tap{display:none;font-size:9px;color:#a5641c;margin-top:3px}
+  body.viewing #pScore .tap{display:block}
+  #headRow2{margin-top:10px;padding-top:9px;border-top:1px dashed var(--paper-line)}
+  #pSub{font-size:11.5px;color:var(--ink-soft);letter-spacing:.2px}
+
+  #content{position:relative;z-index:2;font-family:var(--font-serif);font-size:17.5px;line-height:2.15;color:var(--ink)}
+  #content p{margin:0 0 16px;position:relative}
+  #content p.salutation{margin-bottom:12px}
+  #content p.closing{margin:0 0 4px}
+  .run{position:relative;cursor:pointer;border-radius:2px}
+  body:not(.viewing) .run:hover{background:rgba(201,153,46,.16)}
+  .run.hit-flash{background:rgba(201,153,46,.30);box-shadow:0 0 0 1.5px #c9992e;border-radius:3px}
+  .pend-ov{position:absolute;pointer-events:none;background:rgba(201,153,46,.30);box-shadow:0 0 0 1.5px #c9992e;border-radius:3px;z-index:3}
+
+  .mk-wave{text-decoration:underline wavy;text-decoration-thickness:1.7px;text-underline-offset:5px}
+  .mk-underline{text-decoration:underline;text-decoration-thickness:1.7px;text-underline-offset:5px}
+  .mk-double{text-decoration:underline double;text-decoration-thickness:3px;text-underline-offset:5px}
+  .mk-strike{text-decoration:line-through;text-decoration-thickness:1.7px}
+  .ins-sign{display:inline-block;font-size:22px;font-weight:700;line-height:1;vertical-align:super;transform:translateY(-2px);margin:0 -2px;cursor:pointer;font-family:Georgia,serif;
+    min-width:2ch;text-align:center;padding:0 4px;box-sizing:content-box}
+
+  .overlay{position:absolute;z-index:1;pointer-events:none}
+
+  .anno{position:absolute;z-index:40;max-width:min(300px,86vw);
+    background:#fffdf6;border:1px solid #e0d6bd;border-left:4px solid #999;border-radius:6px;
+    padding:9px 12px;font-size:15.5px;line-height:1.7;color:#332e26;
+    box-shadow:0 8px 26px rgba(0,0,0,.28);pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s}
+  .anno.show{opacity:1;transform:none}
+  .anno .cite{font-family:var(--font-serif);font-style:italic;color:#a5641c;display:block;margin-bottom:4px;font-size:14.5px}
+
+  #tools{flex:0 0 68px;background:linear-gradient(180deg,var(--tool-bg) 0%,var(--tool-bg2) 100%);
+    border-left:1px solid #0c0f13;display:flex;flex-direction:column;align-items:center;
+    padding:12px 6px;gap:7px;overflow-y:auto}
+  .tool{width:56px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:#313845;border:1px solid var(--tool-line);border-radius:8px;padding:4px 2px;
+    color:#cfd6e0;cursor:pointer;transition:.13s;user-select:none;position:relative}
+  .tool:hover{background:#3c4653;transform:translateY(-1px)}
+  .tool.active{background:var(--accent);border-color:#e8bd57;color:#1c1508;box-shadow:0 0 0 2px rgba(201,153,46,.35)}
+  .tool .ic{font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .tool .tlbl{font-size:9.5px;line-height:1;color:#b9c2cf;white-space:nowrap;letter-spacing:.2px;margin-top:1px}
+  .tool.active .tlbl{color:#1c1508;font-weight:600}
+  .tool .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid #ffffff66}
+  .tsep{width:34px;height:1px;background:var(--tool-line);margin:4px 0}
+  .tool.mini{height:36px}
+  .tool.mini .ic{font-size:16px}
+
+  #swatch{position:fixed;z-index:120;display:none;background:#2b323d;border:1px solid #4a5464;
+    border-radius:10px;padding:9px 10px;box-shadow:0 10px 34px rgba(0,0,0,.6)}
+  #swatch.show{display:block}
+  #swatch .swTitle{color:#cfd6e0;font-size:10.5px;letter-spacing:.5px;margin-bottom:7px}
+  #swatch .swRow{display:flex;gap:8px}
+  .swatch-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid #ffffff33;transition:.12s}
+  .swatch-dot:hover{transform:scale(1.14);border-color:#fff}
+  .swatch-dot.on{border-color:#fff;box-shadow:0 0 0 2px #fff8}
+
+  #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+    background:rgba(28,32,39,.94);color:#e7d9b4;font-size:12px;padding:7px 14px;border-radius:20px;
+    border:1px solid #3a424e;pointer-events:none;opacity:0;transition:opacity .2s;z-index:199}
+  #hint.show{opacity:1}
+
+  .modal{position:fixed;inset:0;background:rgba(8,10,13,.6);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+  .modal.show{display:flex}
+  .modal .box{background:#fbf7ec;border-radius:8px;width:min(560px,94vw);max-height:86vh;overflow:auto;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.6)}
+  .modal h3{margin:0 0 4px;font-family:var(--font-serif);font-size:17px;color:#241f18}
+  .modal .sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:14px}
+  .modal .mrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .mbtn{border:1px solid #d6cbaf;background:#f2ead6;border-radius:6px;padding:6px 11px;font-size:12px;cursor:pointer;color:#3a342a;display:flex;align-items:center;gap:5px}
+  .mbtn:hover{background:#eae0c8}
+  .mbtn.on{background:var(--accent);border-color:#b8882a;color:#1c1508;font-weight:700}
+  .modal label{display:block;font-size:12px;color:var(--ink-soft);margin:14px 0 4px}
+  .modal textarea{width:100%;min-height:74px;border:1px solid #ddd2b8;border-radius:5px;padding:8px;font-size:13px;line-height:1.6;resize:vertical;background:#fffdf7;color:#2b2721;font-family:var(--font-note)}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .modal button{border:1px solid #d6cbaf;background:#f2ead6;border-radius:5px;padding:8px 16px;font-size:12.5px;cursor:pointer}
+  .modal button.primary{background:var(--accent);border-color:#b8882a;color:#1c1508;font-weight:600}
+  .modal button.danger{background:#f6ded9;border-color:#d9a79c;color:#a5362a}
+  .modal .quote{font-family:var(--font-serif);font-style:italic;background:#f3ecdb;border-radius:4px;padding:6px 9px;font-size:12.5px;color:#5a5142;margin-top:4px}
+  .palette{display:flex;gap:7px;flex-wrap:wrap}
+  .pdot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid #00000022}
+  .pdot.on{border-color:#8a6d1f;box-shadow:0 0 0 2px #c9992e88}
+  .sumtable{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+  .sumtable td{border:1px solid #e3d9c4;padding:6px 8px;vertical-align:top}
+  .sumtable td:first-child{width:74px;color:var(--ink-soft);background:#f3ecdb;font-weight:600}
+  .reclist{margin:8px 0 0;padding:0;list-style:none;font-size:12px}
+  .reclist li{padding:5px 0;border-bottom:1px dashed #e3d9c4}
+  .reclist b{color:#c31f2b;font-family:var(--font-serif)}
+  .reclist i{color:#2e7d46;font-style:normal}
+  .dimlabel{font-size:11px;letter-spacing:1px;color:#a5641c;margin:14px 0 2px;font-weight:700}
+  .sedit{border:1px solid #e3d9c4;border-radius:4px;background:#fffdf7;color:#2b2721;font-family:inherit;resize:vertical;outline:none}
+  .sedit:focus{border-color:#c9992e;box-shadow:0 0 0 2px #c9992e33}
+  .dimgroup{margin:6px 0 10px;padding:6px 8px;border:1px dashed #e3d9c4;border-radius:5px;background:#fbf7ee}
+  .dimgroup input{margin-bottom:4px}
+
+  .pklist{display:flex;flex-direction:column;gap:7px;margin:8px 0 0}
+  .pkitem{display:flex;align-items:center;gap:9px;border:1px solid #ddd2b8;background:#fffdf7;
+    border-radius:7px;padding:9px 11px;cursor:pointer;transition:.13s}
+  .pkitem:hover{background:#f6efdc;border-color:#c9992e}
+  .pkitem.pknew{border-style:dashed;color:#8a6d1f}
+  .pkitem .pksw{font-size:17px;width:20px;text-align:center;font-weight:700}
+  .pkitem .pklb{flex:1;font-size:12.5px;color:#332e26}
+  .pkitem .pklb i{display:block;font-family:var(--font-serif);color:#7d7364;font-size:11px;font-style:italic;margin-top:1px}
+  .pkitem .pknote{font-size:10.5px;color:#a5641c;white-space:nowrap}
+
+  @media (max-width:560px){
+    #tools{flex-basis:56px;padding:10px 5px}
+    .tool{width:40px;height:38px}
+    #paper{padding:30px 22px 34px}
+    #content{font-size:15px;line-height:2.0}
+  }
+  body.viewing #tools{display:none}
+  body.viewing #viewToggle{color:#bfe3c4}
+  body.locked #viewToggle{display:none}
+  #modelBar{margin-top:26px;text-align:center;border-top:1px dashed #d9cfb8;padding-top:18px}
+  #btnModel{font-family:var(--font-serif);font-size:14px;color:#7a5a1e;background:linear-gradient(180deg,#fdf6e6,#f6ead0);border:1px solid #ddc99a;border-radius:8px;padding:8px 18px;cursor:pointer;letter-spacing:1px;transition:.15s}
+  #btnModel:hover{background:linear-gradient(180deg,#fdf0d5,#f2e2bf)}
+  #btnReload{font-family:var(--font-serif);font-size:13px;color:#6d7a5a;background:linear-gradient(180deg,#f4f8ee,#e8f0dd);border:1px solid #c9dab2;border-radius:8px;padding:8px 14px;margin-left:10px;cursor:pointer;letter-spacing:1px;transition:.15s}
+  #btnReload:hover{background:linear-gradient(180deg,#eff6e6,#e0ebd0)}
+  #modelWrap{display:none;margin-top:16px;font-size:15.5px;line-height:2.0;color:#2b2721}
+  #modelWrap.show{display:block}
+  #modelWrap .modelTitle{font-family:var(--font-serif);font-size:13px;color:#a5641c;letter-spacing:2px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eadfc6}
+  #modelWrap .modelBody p{margin:0 0 12px;text-indent:2em}
+  #modelWrap .modelBody p.salutation,#modelWrap .modelBody p.closing{text-indent:0}
+  #modelWrap .modelNote{margin-top:14px;font-size:12.5px;color:#8a7c5c;line-height:1.8;background:#faf6ec;border-left:3px solid #e0d3ae;padding:10px 14px;border-radius:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="paperWrap">
+      <div id="paper">
+        <div id="paperHead">
+          <div id="headRow1">
+            <div id="headA">
+              <div id="pTitle">加载中…</div>
+              <div id="pTitle2"></div>
+            </div>
+            <div id="headB">
+              <div id="pScore"></div>
+            </div>
+          </div>
+          <div id="headRow2">
+            <div id="pSub"></div>
+          </div>
+        </div>
+        <div id="content"></div>
+        <div id="modelWrap"></div>
+        <div id="modelBar">
+          <button id="btnModel" type="button">📖 查看范文</button>
+          <button id="btnReload" type="button" title="清除本地暂存，加载最新批注">🔄 加载最新版</button>
+        </div>
+      </div>
+    </div>
+    <div id="viewToggle" title="切换编辑 / 阅读视角">
+      <span class="vic" id="vtIcon">✏️</span><span id="vtLabel">切到阅读</span>
+    </div>  </div>
+  <div id="tools"></div>
+</div>
+
+<div id="hint"></div>
+<div id="swatch"></div>
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+
+<div class="modal" id="editModal">
+  <div class="box">
+    <h3 id="emTitle">编辑标记</h3>
+    <div class="sub" id="emCite"></div>
+    <div class="quote" id="emQuote"></div>
+    <label>形态</label>
+    <div class="mrow" id="emShapes"></div>
+    <label>颜色</label>
+    <div class="palette" id="emColors"></div>
+    <label>批注意见</label>
+    <textarea id="emText" placeholder="输入批注意见（可留空）…"></textarea>
+    <div class="row">
+      <button class="danger" id="emDelete">删除标记</button>
+      <button id="emCancel">取消</button>
+      <button class="primary" id="emOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="sumModal">
+  <div class="box" id="sumBox"></div>
+</div>
+
+<div class="modal" id="textEditModal">
+  <div class="box" id="teBox"></div>
+</div>
+
+<div class="modal" id="pickModal">
+  <div class="box" style="width:min(420px,94vw)">
+    <h3>这里有重叠的标记</h3>
+    <div class="sub" id="pkCite"></div>
+    <div class="pklist" id="pkList"></div>
+    <div class="row"><button id="pkCancel">取消</button></div>
+  </div>
+</div>
+
+<script type="application/json" id="app-data">{"meta":{"title":"2025 考研英语（一）","subtitle":"回复邮件　10 分　约 100 词　实际约 95 词","score":"6 / 10","scoreNote":"要点全覆盖、结构清晰；语言小错，无内容硬伤，但信息量不足。","source":"套用万能模板","pages":1,"title2":"小作文（Part A 应用文）"},"legend":[{"key":"error","label":"错词圈","color":"#d3232f","desc":"拼写 / 用词错误"},{"key":"grammar","label":"句法波浪","color":"#e08a00","desc":"语法 / 词性 / 搭配错"},{"key":"good","label":"亮点高亮","color":"#2e9e4f","desc":"写得好的表达"},{"key":"fatal","label":"硬伤标记","color":"#ff4d2e","desc":"内容矛盾等致命扣分"},{"key":"template","label":"模板句式","color":"#2f6fd0","desc":"可套用的空壳句式"},{"key":"note","label":"纯批注","color":"#7b5cc4","desc":"只挂意见，不改文字"}],"blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","id":"p1","text":"To enhance students' capabilities to craft-making and enrich their extracurricular life, the craft-making activities will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft demonstrate and willing to give a hand."},{"type":"para","id":"p2","text":"The craftmen will show paper-cutting and bamboo weaving. Of course, there are other activities on the playground. Let me keep a little secret for you."},{"type":"para","id":"p3","text":"You are willing to give a hand. We are so grateful. Can you help prepare seats and test audio equipment? We will gather at the school hall at 2 p.m. this Friday."},{"type":"para","id":"p4","text":"Looking forward to your reply."},{"type":"closing","text":"Yours, sincerely"},{"type":"closing","text":"Li Ming"}],"summary":{"dims":[{"name":"内容要点","text":"两问（what will they show / what I can do）全部覆盖 ✅；2 点礼堂集合、4 点操场开始，安排合理，无内容矛盾"},{"name":"语言","text":"小错集中：craftmen（拼写）、demonstrate 词性、capabilities to craft-making；均为可自纠的常见错"},{"name":"语域","text":"Let me keep a little secret 偏俏皮，考试应用文宜改实质内容"},{"name":"格式","text":"有称呼 ✅；Yours sincerely, 标点需修（中间无逗号、末尾逗号）"},{"name":"结构","text":"三段式清晰，缩进式格式可用 ✅"}],"priority":["语言小错：craftmen（题干白给）、demonstrate 词性、capabilities in——熟悉即可全对","书信格式：Yours sincerely, 的标点规范","语域：俏皮表达换成实质内容（考试应用文求稳）"]},"recite":[{"wrong":"craftmen","right":"craftsmen（题干原文）"},{"wrong":"the craft demonstrate","right":"the craft demonstration / the crafts"},{"wrong":"capabilities to craft-making","right":"capabilities in craft-making"},{"wrong":"Yours, sincerely","right":"Yours sincerely,（中间无逗号、末尾逗号）"}],"marksMap":{"p1":[{"start":212,"end":223,"shape":"circle","color":"#d3232f","note":"词性错：demonstrate 是动词，此处需名词 → the craft demonstration 或 the crafts on display。"},{"start":239,"end":250,"shape":"highlight","color":"#b7f0b1","note":"地道，口语化恰当。"},{"start":0,"end":169,"shape":"highlight","color":"#a8d8ff","note":"万能模板套句：以“To enhance …, … will be held …”开篇点明活动目的、时间、地点，句式标准、信息完整，可直接复用。"},{"start":34,"end":36,"shape":"circle","color":"#d3232f","note":"capability 后接 to do 或 of doing；craft-making 是动名词，应为 capabilities in craft-making。"}],"p2":[{"start":4,"end":12,"shape":"circle","color":"#d3232f","note":"拼写错 → craftsmen。真题邮件里 Paul 用的就是 craftsmen，抄题干就能对！"},{"start":23,"end":55,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合“介绍内容”要求。"},{"start":114,"end":149,"shape":"strike","color":"#d3232f","note":"俏皮，但风险高。考试应用文要信息完整、表达得体；“卖关子”显得不专业，且浪费词数（只有 100 词）。建议换成实质内容。"},{"start":150,"end":150,"shape":"insert","color":"#d3232f","note":"活动内容偏薄，除 paper-cutting / bamboo weaving 外可再补一个活动信息"},{"start":57,"end":112,"shape":"strike","color":"#d3232f","note":"尽量减少没有实质意义的内容"}],"p3":[{"start":0,"end":51,"shape":"strike","color":"#d3232f","note":"逻辑略松 + 时态不当。这是对 Paul 的“陈述”，像在复述他的话（第 1 段已说过一次 willing to give a hand），与题干 Please let me know what I can do 的衔接不够直接。可直接给出任务，并补一句衔接。"},{"start":52,"end":103,"shape":"highlight","color":"#ffe066","note":"📌 任务具体（摆座位 + 试音响），符合“请对方帮忙”要求。\n建议套《万能模板》8.6 书信语料 ^tmpl-letter-appreciate 的礼貌软化句式：Would you be able to assist with ___? / I would appreciate it if you could ___."},{"start":65,"end":103,"shape":"double","color":"#2e9e4f","note":"具体、加分，符合回答“what I can do”的要求。"},{"start":104,"end":104,"shape":"insert","color":"#d3232f","note":"\"What I can do\" 信息偏薄，可再加一个帮忙动作或展开说明"},{"start":113,"end":122,"shape":"highlight","color":"#b7f0b1","note":"地道表达：gather at（集合于）为常见搭配，简洁自然，优于 meet together at 之类的累赘说法。"}],"p4":[{"start":0,"end":30,"shape":"highlight","color":"#ffe066","note":"📌 标准结尾句式，全对。模板库 8.6 也推荐 I look forward to hearing from you."}],"p5":[{"start":0,"end":16,"shape":"circle","color":"#d3232f","note":"标点错：书信格式应为 Yours sincerely,（中间无逗号，末尾逗号）。"}]},"model":{"title":"参考范文（综合批注意见修订）","blocks":[{"type":"salutation","text":"Dear Paul,"},{"type":"para","text":"To enhance students' capabilities in craft-making and enrich their extracurricular life, the craft-making activity will be held on the playground at 4 p.m. this Friday. I'm glad you are interested in the craft demonstration and willing to give a hand."},{"type":"para","text":"The craftsmen will show paper-cutting and bamboo weaving. There will also be clay-figure making and Chinese calligraphy."},{"type":"para","text":"Would you be able to assist with the preparation? We would appreciate it if you could help set up the seats and test the audio equipment beforehand. We will gather at the school hall at 2 p.m. this Friday."},{"type":"para","text":"I look forward to hearing from you."},{"type":"closing","text":"Yours sincerely,"},{"type":"closing","text":"Li Ming"}],"note":"修订要点：① 修正 craftmen→craftsmen、demonstrate→demonstration、capabilities to→capabilities in；② 删去“卖关子”句与无实质信息句，补入具体活动（clay-figure making、Chinese calligraphy），扩充内容；③ “请对方帮忙”改为 Would you be able to assist with …? / I would appreciate it if you could … 的礼貌软化句式，并补一句衔接；④ 结尾用 Yours sincerely,（中间无逗号、末尾逗号）。约 100 词，符合字数要求。"},"rev":"2026-09-29-v4.9"}</script>
+<script>
+const SHAPES = [
+  {key:'wave',      ic:'〰',  lb:'波浪',    cls:'mk-wave'},
+  {key:'circle',    ic:'◯',  lb:'圈',      cls:'mk-circle'},
+  {key:'highlight', ic:'▨',  lb:'高亮',    cls:'mk-highlight'},
+  {key:'underline', ic:'_',  lb:'下划线',  cls:'mk-underline'},
+  {key:'double',    ic:'=',  lb:'双下划线',cls:'mk-double'},
+  {key:'strike',    ic:'S̶',  lb:'删除线',  cls:'mk-strike'},
+  {key:'insert',    ic:'∇',   lb:'补充信息',cls:'mk-insert'},
+];
+const PALETTES = {
+  wave:['#d3232f','#e08a00','#2f6fd0','#7b5cc4'],
+  circle:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
+  highlight:['#ffe066','#b7f0b1','#a8d8ff','#ffc2d1'],
+  underline:['#d3232f','#e08a00','#2e9e4f','#2f6fd0'],
+  double:['#d3232f','#2e9e4f','#7b5cc4','#2f6fd0','#2b2721'],
+  strike:['#d3232f','#e08a00','#2e9e4f','#2b2721'],
+  insert:['#d3232f'],
+};
+const DEF_COLOR={wave:'#d3232f',circle:'#d3232f',highlight:'#ffe066',underline:'#2b2721',double:'#2f6fd0',strike:'#d3232f',insert:'#d3232f'};
+
+let DATA=null;
+let paraMarks={};
+let sid=0;
+let viewing=false;
+let restoredFromLocal=false;
+let activeShape=null, activeColor={};
+let history=[];
+let editing=null, openAnnoEl=null;
+let circleBoxQueue=[];
+
+function parsePara(text, pid){
+  // 数据已全部走 marksMap，正文即纯文本（保留函数名，供多处调用）
+  return {plain:text, marks:[]};
+}
+
+function render(){
+  const M=DATA.meta;
+  pendStart=null;
+  document.getElementById('pTitle').textContent=M.title;
+  document.getElementById('pTitle2').textContent=M.title2||'';
+  document.getElementById('pSub').textContent=M.subtitle+'　'+M.source;
+  document.getElementById('pScore').innerHTML=`<b>${M.score}</b><span>${M.scoreNote}</span><div class="tap">点此看总评</div>`;
+  const psEl=document.getElementById('pScore');
+  psEl.classList.toggle('clickable', viewing);
+  psEl.onclick=(e)=>{ if(viewing){e.stopPropagation();openSummary();} };
+
+  const content=document.getElementById('content');
+  content.innerHTML='';
+  DATA.blocks.forEach((b, idx)=>{
+    const pid='p'+idx;
+    const plain=parsePara(b.text, pid).plain;
+    if(!paraMarks[pid]){
+      const mm=(DATA.marksMap&&DATA.marksMap[pid])||[];
+      paraMarks[pid]=mm.map(m=>({id:'m'+(sid++), start:m.start, end:m.end, shape:m.shape, color:m.color, note:m.note||''}));
+    }
+    const p=document.createElement('p');
+    if(b.type==='salutation') p.className='salutation';
+    if(b.type==='closing') p.className='closing';
+    p.dataset.pid=pid;
+    p.appendChild(buildParaContent(pid, plain, paraMarks[pid]));
+    content.appendChild(p);
+  });
+  document.body.classList.toggle('viewing', viewing);
+  buildTools(); syncToggle(); positionToggle();
+  renderModel();
+  requestAnimationFrame(()=>drawOverlays());
+}
+// 范文层：DATA.model = {title, blocks:[{type,text}], note}
+function renderModel(){
+  const wrap=document.getElementById('modelWrap');
+  const bar=document.getElementById('modelBar');
+  const mod=DATA.model;
+  if(!mod || !mod.blocks || !mod.blocks.length){ bar.style.display='none'; wrap.innerHTML=''; return; }
+  bar.style.display='';
+  wrap.innerHTML='';
+  const t=document.createElement('div'); t.className='modelTitle'; t.textContent=mod.title||'范文';
+  wrap.appendChild(t);
+  const body=document.createElement('div'); body.className='modelBody';
+  mod.blocks.forEach(b=>{
+    const p=document.createElement('p');
+    if(b.type==='salutation') p.className='salutation';
+    if(b.type==='closing') p.className='closing';
+    p.textContent=b.text;
+    body.appendChild(p);
+  });
+  wrap.appendChild(body);
+  if(mod.note){ const n=document.createElement('div'); n.className='modelNote'; n.textContent=mod.note; wrap.appendChild(n); }
+}
+document.getElementById('btnModel').addEventListener('click', ()=>{
+  const wrap=document.getElementById('modelWrap');
+  const on=wrap.classList.toggle('show');
+  document.getElementById('btnModel').textContent = on ? '📖 收起范文' : '📖 查看范文';
+  if(on) setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),60);
+});
+document.getElementById('btnReload').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(paperKey()); }catch(e){}
+  location.reload(true);
+});
+function syncToggle(){
+  const icon=document.getElementById('vtIcon'), label=document.getElementById('vtLabel');
+  if(viewing){icon.textContent='✏️';label.textContent='切到编辑';}
+  else{icon.textContent='📖';label.textContent='切到阅读';}
+}
+// 把一段文本按“词/空白/标点”切成最小可点单元（英文词含 ' - ，中文整块，空白独立）
+function tokenize(text){
+  const tokens=[]; let i=0;
+  const isWord=ch=>/[A-Za-z0-9'\u2019-]/.test(ch);
+  const isCJK=ch=>/[\u4e00-\u9fa5]/.test(ch);
+  const isSpace=ch=>/\s/.test(ch);
+  while(i<text.length){
+    let s=i, ch=text[i];
+    if(isSpace(ch)){ while(i<text.length&&isSpace(text[i]))i++; }
+    else if(isCJK(ch)){ while(i<text.length&&isCJK(text[i]))i++; }
+    else if(isWord(ch)){ while(i<text.length&&isWord(text[i]))i++; }
+    else { i++; }  // 单个标点
+    tokens.push({s, e:i, text:text.slice(s,i)});
+  }
+  return tokens;
+}
+function buildParaContent(pid, plain, marks){
+  const frag=document.createDocumentFragment();
+  if(!marks.length){frag.appendChild(document.createTextNode(plain));return frag;}
+  const insMarks=marks.filter(m=>m.shape==='insert');
+  const regMarks=marks.filter(m=>m.shape!=='insert');
+  const bounds=new Set([0,plain.length]);
+  regMarks.forEach(mk=>{bounds.add(mk.start);bounds.add(mk.end);});
+  const pts=[...bounds].sort((a,b)=>a-b);
+  const spans=[];
+  const posEls={};  // 偏移 -> 插入点标记元素（用于把 ∇ 放到正确位置）
+  for(let k=0;k<pts.length-1;k++){
+    const s=pts[k], e=pts[k+1]; if(s===e) continue;
+    // 先把 [s,e) 按标记边界切出一段，再按词细分成子 span
+    tokenize(plain.slice(s,e)).forEach(tk=>{
+      const span=document.createElement('span');
+      span.className='run'; span.textContent=tk.text;
+      span.dataset.pid=pid; span.dataset.start=s+tk.s; span.dataset.end=s+tk.e;
+      frag.appendChild(span); spans.push({s:s+tk.s, e:s+tk.e, el:span});
+    });
+  }
+  regMarks.forEach(mk=>{
+    const shape=mk.shape, cls=(SHAPES.find(x=>x.key===shape)||{}).cls;
+    if(shape==='circle'){}
+    else if(shape==='highlight'){
+      spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add('mk-highlight-span');sp.el.style.background=hexA(mk.color,.55);sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
+    } else {
+      spans.filter(sp=>sp.s>=mk.start&&sp.e<=mk.end).forEach(sp=>{sp.el.classList.add(cls);sp.el.style.textDecorationColor=mk.color;sp.el.dataset.mk=(sp.el.dataset.mk||'')+mk.id+',';});
+    }
+  });
+  // 插入型标记（∇ 补充）：在指定偏移处插一个红色倒 V 符号
+  insMarks.forEach(mk=>{
+    const sign=document.createElement('span');
+    sign.className='ins-sign'; sign.textContent='∇';
+    sign.dataset.ins='1'; sign.dataset.mk=mk.id;
+    sign.style.color=mk.color||'#d3232f';
+    sign.title=mk.note||'此处需补充信息';
+    posEls[mk.start]=sign;
+  });
+  // 把插入符号按偏移放到 span 序列里（找不到精确位置就落到最近的前一个 span 之后）
+  if(insMarks.length){
+    const sorted=Object.keys(posEls).map(Number).sort((a,b)=>a-b);
+    sorted.forEach(pos=>{
+      const sign=posEls[pos];
+      const after=[...spans].reverse().find(sp=>sp.e<=pos) || null;
+      if(after && after.el.parentNode) after.el.parentNode.insertBefore(sign, after.el.nextSibling);
+      else frag.insertBefore(sign, frag.firstChild);
+    });
+  }
+  circleBoxQueue=circleBoxQueue.concat(marks.filter(m=>m.shape==='circle').map(m=>({pid,m})));
+  return frag;
+}
+function drawOverlays(){
+  document.querySelectorAll('#content .overlay').forEach(o=>o.remove());
+  document.querySelectorAll('#content p').forEach(p=>{
+    const pid=p.dataset.pid;
+    (paraMarks[pid]||[]).forEach(m=>{
+      if(m.shape!=='circle') return;
+      const rects=segmentsByOffset(p, m.start, m.end);
+      if(!rects.length) return;
+      // 圆圈：合并所有碎片为一个大包围盒（整段圈一次，而非每词一个）
+      const minX=Math.min(...rects.map(r=>r.x)), minY=Math.min(...rects.map(r=>r.y));
+      const maxX=Math.max(...rects.map(r=>r.x+r.w)), maxY=Math.max(...rects.map(r=>r.y+r.h));
+      const bb={x:minX, y:minY, w:maxX-minX, h:maxY-minY};
+      const ov=document.createElement('div'); ov.className='overlay';
+      ov.style.left=bb.x+'px'; ov.style.top=bb.y+'px'; ov.style.width=bb.w+'px'; ov.style.height=bb.h+'px';
+      ov.innerHTML=`<svg width="${bb.w}" height="${bb.h}" style="overflow:visible"><path fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" d="${ellipsePath(bb.w,bb.h)}"/></svg>`;
+      p.appendChild(ov);
+    });
+  });
+}
+function segmentsByOffset(p, start, end){
+  const runs=[...p.querySelectorAll('.run')]; const flat=[];
+  runs.forEach(r=>{
+    const s=+r.dataset.start, e=+r.dataset.end;
+    if(e<=start||s>=end) return;
+    const a=Math.max(start,s), b=Math.min(end,e);
+    flat.push(...rangeRects(r.firstChild, a-s, b-s));
+  });
+  const pr=p.getBoundingClientRect();
+  return flat.map(r=>({x:r.left-pr.left-3,y:r.top-pr.top-4,w:r.width+6,h:r.height+9}));
+}
+function rangeRects(node, from, to){
+  if(!node||node.nodeType!==3) return [];
+  const range=document.createRange();
+  range.setStart(node, Math.max(0,from)); range.setEnd(node, Math.min(node.length,to));
+  return [...range.getClientRects()].map(r=>({left:r.left,top:r.top,width:r.width,height:r.height}));
+}
+function ellipsePath(w,h){
+  const cx=w/2,cy=h/2,rx=w/2-1,ry=h/2-1;
+  return `M ${cx-rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx+rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx-rx} ${cy} Z`;
+}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+
+function buildTools(){
+  const t=document.getElementById('tools'); t.innerHTML='';
+  SHAPES.forEach(s=>{
+    const d=document.createElement('div'); d.className='tool'+(activeShape===s.key?' active':''); d.dataset.shape=s.key;
+    const col=activeColor[s.key]||DEF_COLOR[s.key];
+    d.title=s.lb;
+    d.innerHTML=`<span class="ic" style="color:${col}">${s.ic}</span><span class="tlbl">${s.lb}</span>`;
+    d.onclick=(e)=>{
+      e.stopPropagation();
+      // 再点已激活的工具 = 取消选中（换色请先取消再点，或直接选别的工具）
+      if(activeShape===s.key){
+        activeShape=null; clearPendStart();
+        hint('已取消工具选中（现在点词=查看/修改该处标记）'); buildTools(); return;
+      }
+      openSwatch(s.key,d);
+    };
+    t.appendChild(d);
+  });
+  // 顶部“取消选中”按钮：仅在有工具激活时出现
+  if(activeShape){
+    const bOff=document.createElement('div'); bOff.className='tool mini'; bOff.id='btnUnselect';
+    bOff.title='取消选中（退出工具）'; bOff.innerHTML=`<span class="ic">✕</span>`;
+    bOff.onclick=(e)=>{e.stopPropagation();activeShape=null;clearPendStart();hint('已取消工具选中（现在点词=查看/修改该处标记）');buildTools();};
+    t.appendChild(bOff);
+  }
+  const sep=document.createElement('div'); sep.className='tsep'; t.appendChild(sep);
+  [['btnUndo','↩','撤销',undo],['btnSum','📋','总评',openSummary],['btnEditText','✎','编辑原文（修转录错误）',openTextEdit]]
+    .forEach(([id,ic,l,fn])=>{const d=document.createElement('div');d.className='tool mini';d.id=id;d.title=l;d.innerHTML=`<span class="ic">${ic}</span>`;d.onclick=(e)=>{e.stopPropagation();fn();};t.appendChild(d);});
+  const sep2=document.createElement('div'); sep2.className='tsep'; t.appendChild(sep2);
+  const bSave=document.createElement('div'); bSave.className='tool mini'; bSave.id='btnExport';
+  bSave.title='导出标记 JSON'; bSave.innerHTML=`<span class="ic">💾</span>`;
+  bSave.onclick=(e)=>{e.stopPropagation();downloadJSON();}; t.appendChild(bSave);
+  const bImp=document.createElement('div'); bImp.className='tool mini'; bImp.id='btnImport';
+  bImp.title='导入标记 JSON'; bImp.innerHTML=`<span class="ic">📥</span>`;
+  bImp.onclick=(e)=>{e.stopPropagation();document.getElementById('fileInput').click();}; t.appendChild(bImp);
+  if(restoredFromLocal){
+    const bClr=document.createElement('div'); bClr.className='tool mini'; bClr.id='btnClear';
+    bClr.title='清空本地暂存'; bClr.innerHTML=`<span class="ic">🗑</span>`;
+    bClr.onclick=(e)=>{e.stopPropagation();clearLocal();}; t.appendChild(bClr);
+  }
+}
+function openSwatch(shapeKey, anchorEl){
+  const sw=document.getElementById('swatch');
+  const cur=activeColor[shapeKey]||DEF_COLOR[shapeKey]; const s=SHAPES.find(x=>x.key===shapeKey);
+  sw.innerHTML=`<div class="swTitle">${s.lb} · 选颜色</div><div class="swRow">`+PALETTES[shapeKey].map(c=>`<div class="swatch-dot${c===cur?' on':''}" data-c="${c}" style="background:${c}"></div>`).join('')+`</div>`;
+  sw.classList.add('show');
+  const r=anchorEl.getBoundingClientRect();
+  sw.style.top=Math.max(8,Math.min(window.innerHeight-sw.offsetHeight-10,r.top))+'px';
+  sw.style.left=Math.max(8,r.left-sw.offsetWidth-8)+'px';
+  sw.querySelectorAll('.swatch-dot').forEach(dot=>{
+    dot.onclick=(e)=>{e.stopPropagation();activeColor[shapeKey]=dot.dataset.c;activeShape=shapeKey;sw.classList.remove('show');clearPendStart();hint(`${s.lb}（${colorName(dot.dataset.c)}）：点首词再点尾词定范围，或直接划选`);buildTools();};
+  });
+}
+function colorName(c){return {'#d3232f':'红','#e08a00':'橙','#2e9e4f':'绿','#2f6fd0':'蓝','#7b5cc4':'紫','#ffe066':'黄','#b7f0b1':'浅绿','#a8d8ff':'浅蓝','#ffc2d1':'粉','#2b2721':'黑'}[c]||c;}
+document.addEventListener('click',()=>document.getElementById('swatch').classList.remove('show'));
+document.getElementById('swatch').addEventListener('click',e=>e.stopPropagation());
+/* ==================== 交互 ==================== */
+/* 拖选用「浏览器原生 Selection」→ 映射成段落内字符偏移，不受 span 边界限制 */
+let drag=null;
+let suppressClick=false;
+let pendStart=null;   // B(a) 首尾点选：已设的起点 {pid,s,e}
+
+// 把 DOM (node,offset) 换算成段落内绝对字符偏移
+function charOffset(p, node, offset){
+  // 遍历段落内所有文本节点，累计长度，定位到 node
+  const walker=document.createTreeWalker(p, NodeFilter.SHOW_TEXT, null);
+  let acc=0, n;
+  while((n=walker.nextNode())){
+    if(n===node) return acc+offset;
+    acc+=n.length;
+  }
+  return null;
+}
+// 取当前原生选区的段落内起止偏移（要求起止在同一段落内）
+function selOffsets(){
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed) return null;
+  const r=sel.getRangeAt(0);
+  let sp=r.startContainer, ep=r.endContainer;
+  if(sp.nodeType!==3) sp=sp.firstChild;
+  if(ep.nodeType!==3) ep=ep.firstChild;
+  if(!sp||!ep) return null;
+  const spEl=sp.parentElement.closest('.run'), epEl=ep.parentElement.closest('.run');
+  if(!spEl||!epEl) return null;
+  const p=spEl.closest('p'); if(!p||epEl.closest('p')!==p) return null; // 同段
+  const pid=p.dataset.pid;
+  const a=charOffset(p, sp, r.startOffset), b=charOffset(p, ep, r.endOffset);
+  if(a===null||b===null) return null;
+  return {pid, s:Math.min(a,b), e:Math.max(a,b)};
+}
+
+document.getElementById('content').addEventListener('mousedown', e=>{
+  if(viewing) return;
+  const span=e.target.closest('.run');
+  if(!span||!activeShape) return;
+  drag={pid:span.dataset.pid, moved:false};
+});
+document.addEventListener('mouseup', ev=>{
+  if(!drag) return;
+  const d=drag; drag=null;
+  const hadSel = window.getSelection() && !window.getSelection().isCollapsed;
+  if(!hadSel){ return; } // 没拖出选区 → 交给 click 处理（单点/首尾选）
+  const off=selOffsets();
+  if(!off||off.e<=off.s) return;
+  suppressClick=true;
+  clearPendStart();
+  // 清掉原生选区（避免蓝色高亮残留）
+  window.getSelection().removeAllRanges();
+  applyRange(off.pid, off.s, off.e);
+});
+
+/* ===== A：触屏长按拖选 —— selectionchange 检测落定，自动激活 ===== */
+let selTimer=null;
+document.addEventListener('selectionchange', ()=>{
+  if(viewing||!activeShape) return;
+  if(drag) return;                       // 桌面 mousedown 进行中，交给 mouseup
+  if(document.body.classList.contains('locked')) return;
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed){ return; }
+  // 选区稳定 ~450ms 后激活（触屏松手后浏览器选区保持）
+  clearTimeout(selTimer);
+  selTimer=setTimeout(()=>{
+    if(drag) return;
+    const sel2=window.getSelection();
+    if(!sel2||sel2.rangeCount===0||sel2.isCollapsed) return;
+    const off=selOffsets();
+    if(!off||off.e<=off.s) return;
+    clearPendStart();
+    sel2.removeAllRanges();
+    applyRange(off.pid, off.s, off.e);
+  }, 450);
+});
+
+function applyRange(pid, s, e){
+  if(!paraMarks[pid]) paraMarks[pid]=[];
+  const mk={id:'m'+(sid++), start:s, end:e, shape:activeShape, color:activeColor[activeShape]||DEF_COLOR[activeShape], note:''};
+  paraMarks[pid].push(mk);
+  history.push({type:'add', pid, ids:[mk.id]});
+  rerenderAndDraw();
+  openEditor(pid, mk, true);
+}
+// B(a)：清起点
+function clearPendStart(){
+  if(pendStart){
+    pendStart=null;
+    document.querySelectorAll('.run.pend').forEach(r=>r.classList.remove('pend'));
+    document.querySelectorAll('.pend-ov').forEach(o=>o.remove());
+  }
+}
+
+document.getElementById('content').addEventListener('click', e=>{
+  if(suppressClick){ suppressClick=false; return; }
+  // 点插入符号（∇）→ 编辑态开编辑器；阅读态显示批注气泡
+  const sign=e.target.closest('.ins-sign');
+  if(sign){
+    const p=sign.closest('p'); const pid=p?p.dataset.pid:null;
+    if(pid){
+      const mk=(paraMarks[pid]||[]).find(x=>x.id===sign.dataset.mk);
+      if(mk){
+        e.stopPropagation();
+        if(viewing){ flashMark(pid, mk); if(mk.note) showAnno(pid, mk); else hint('这条标记没有批注'); return; }
+        openEditor(pid, mk); return;
+      }
+    }
+    return;
+  }
+  const span=e.target.closest('.run');
+  if(!span){ hideAnno(); clearPendStart(); return; }
+  const pid=span.dataset.pid;
+  if(viewing){ handleViewClick(pid, span); return; }
+  handleEditClick(pid, span, e);
+});
+
+function handleEditClick(pid, span, ev){
+  let s=+span.dataset.start, e=+span.dataset.end;
+  const tok=plainOf(pid).slice(s,e);
+  // 点到空白/标点 token：先看它是否落在某个标记范围内 → 是则查该标记
+  // 否则忽略（无工具时）；有工具时以该位置为准
+  const isBlank=/^\s*$/.test(tok);
+  const hits=findMarks(pid, s, e);
+
+  // ===== 补充信息（∇）：点标点/词，在该 token 末尾插入一个零长度标记 =====
+  if(activeShape==='insert'){
+    const pos=e; // 插在点击 token 之后（即标点后）
+    const exist=(paraMarks[pid]||[]).some(m=>m.shape==='insert' && m.start===pos);
+    if(exist){ hint('这里已经有一个补充标记了'); return; }
+    const mk={id:'m'+(sid++), start:pos, end:pos, shape:'insert', color:activeColor['insert']||DEF_COLOR['insert'], note:''};
+    history.push({type:'add', pid, ids:[mk.id]});
+    if(!paraMarks[pid]) paraMarks[pid]=[];
+    paraMarks[pid].push(mk);
+    rerenderAndDraw();
+    openEditor(pid, mk, true);
+    return;
+  }
+
+  // ===== B(a) 首尾点选：有工具在手时，两次点击定一个范围 =====
+  if(activeShape){
+    if(isBlank && !pendStart) return;   // 空白不能作为起点
+    if(!pendStart){
+      pendStart={pid, s, e};
+      paintPend(pid, s, e);
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点另一个词=范围，同词再点=只标这个词');
+      return;
+    }
+    if(pendStart.pid!==pid){
+      clearPendStart(); pendStart={pid, s, e}; paintPend(pid, s, e);
+      hint('已设起点「'+plainOf(pid).slice(s,e)+'」，再点另一个词=范围，同词再点=只标这个词');
+      return;
+    }
+    if(pendStart.s===s && pendStart.e===e){
+      // 同词再点 = 直接标这一个词（单念标记），而不是取消
+      clearPendStart();
+      return applyRange(pid, s, e);
+    }
+    const a=Math.min(pendStart.s, s), b=Math.max(pendStart.e, e);
+    clearPendStart();
+    return applyRange(pid, a, b);
+  }
+
+  // ===== 无工具在手：点已标记处 → 编辑器/拾取器；无标记 → 轻提示 =====
+  if(hits.length===0){
+    if(isBlank) return;
+    hint('「'+tok+'」这里没有标记（要加标记请先在右侧选工具）');
+    return;
+  }
+  if(hits.length===1){ openEditor(pid, hits[0]); return; }
+  openPicker(pid, s, e, hits);
+}
+
+// 用绝对定位的高亮块标出“起点词”（只亮这个词，不亮整个 run）
+function paintPend(pid, s, e){
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  if(!p) return;
+  segmentsByOffset(p, s, e).forEach(rect=>{
+    const ov=document.createElement('div'); ov.className='pend-ov';
+    ov.style.left=rect.x+'px'; ov.style.top=rect.y+'px'; ov.style.width=rect.w+'px'; ov.style.height=rect.h+'px';
+    p.appendChild(ov);
+  });
+}
+function createMark(pid, s, e){
+  const shape=activeShape, color=activeColor[shape]||DEF_COLOR[shape];
+  const newMk={id:'m'+(sid++), start:s, end:e, shape, color, note:''};
+  paraMarks[pid].push(newMk);
+  history.push({type:'add', pid, ids:[newMk.id]});
+  rerenderAndDraw();
+  openEditor(pid, newMk, true);
+}
+// 返回所有“覆盖”该范围（词落在标记内）的标记，内层（范围小）优先
+function findMarks(pid, s, e){
+  return (paraMarks[pid]||[]).filter(m=>s>=m.start && e<=m.end)
+    .sort((a,b)=>(a.end-a.start)-(b.end-b.start));
+}
+
+// 多层命中时的拾取器
+function openPicker(pid, s, e, hits){
+  const box=document.getElementById('pickModal');
+  const txt=plainOf(pid).slice(s, e);
+  document.getElementById('pkCite').textContent=`点选的是「${txt}」，这里有 ${hits.length} 层标记叠在一起：`;
+  const list=document.getElementById('pkList');
+  list.innerHTML='';
+  hits.forEach(m=>{
+    const sh=SHAPES.find(x=>x.key===m.shape)||{ic:'?',lb:m.shape};
+    const full=plainOf(pid).slice(m.start, m.end);
+    const d=document.createElement('div'); d.className='pkitem';
+    d.innerHTML=`<span class="pksw" style="color:${m.color}">${sh.ic}</span>
+      <span class="pklb">${sh.lb}<i>「${full.length>26?full.slice(0,26)+'…':full}」</i></span>
+      <span class="pknote">${m.note?'有批注':'无批注'}</span>`;
+    d.onclick=()=>{ closePicker(); openEditor(pid, m); };
+    list.appendChild(d);
+  });
+  // 允许“在此新建”
+  const nw=document.createElement('div'); nw.className='pkitem pknew';
+  nw.innerHTML=`<span class="pksw">＋</span><span class="pklb">选中「${txt}」新建一层标记</span>`;
+  nw.onclick=()=>{ closePicker(); if(!activeShape){hint('先在右侧选一个标记工具');return;} createMark(pid,s,e); };
+  list.appendChild(nw);
+  box.classList.add('show');
+}
+function closePicker(){ document.getElementById('pickModal').classList.remove('show'); }
+function handleViewClick(pid, span){
+  if(openAnnoEl){ hideAnno(); return; }
+  const s=+span.dataset.start, e=+span.dataset.end;
+  const hits=findMarks(pid, s, e);
+  // 优先显示有批注的（最内层优先）
+  const mk=hits.find(m=>m.note) || hits[0];
+  if(!mk){ hint('这里没有批注'); return; }
+  // 高亮整条标记的范围（点词 → 选中它所属的完整标记）
+  flashMark(pid, mk);
+  if(!mk.note){ hint('这条标记没有批注（已高亮所属范围）'); return; }
+  showAnno(pid, mk);
+}
+// 临时高亮某条标记覆盖的所有词（阅读态点词时用）
+function flashMark(pid, mk){
+  document.querySelectorAll('.run.hit-flash').forEach(r=>r.classList.remove('hit-flash'));
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  if(!p) return;
+  [...p.querySelectorAll('.run')].forEach(r=>{
+    const a=+r.dataset.start, b=+r.dataset.end;
+    if(a>=mk.start && b<=mk.end) r.classList.add('hit-flash');
+  });
+}
+function clearFlash(){ document.querySelectorAll('.run.hit-flash').forEach(r=>r.classList.remove('hit-flash')); }
+function showAnno(pid, mk){
+  const text=plainOf(pid).slice(mk.start, mk.end);   // 整条标记的文本，而非单个词
+  const card=document.createElement('div'); card.className='anno show'; card.dataset.mk=mk.id;
+  card.innerHTML=`<span class="cite">${text}</span>${mk.note}`;
+  document.getElementById('paper').appendChild(card);
+  const pr=document.getElementById('paper').getBoundingClientRect();
+  // 锚点：标记范围的第一个词
+  const p=document.querySelector(`p[data-pid="${pid}"]`);
+  let anchor=null;
+  if(p){ anchor=[...p.querySelectorAll('.run')].find(r=>{const a=+r.dataset.start;return a>=mk.start && a<mk.end;}); }
+  const er=(anchor||p||document.getElementById('paper')).getBoundingClientRect();
+  let left=er.right-pr.left+10, top=er.top-pr.top-4;
+  if(left+270>pr.width) left=Math.max(6, er.left-pr.left-266);
+  if(top<4) top=4;
+  if(top+card.offsetHeight>pr.height-6) top=Math.max(4, pr.height-card.offsetHeight-6);
+  card.style.left=left+'px'; card.style.top=top+'px';
+  openAnnoEl=card;
+}
+function hideAnno(){ if(openAnnoEl){openAnnoEl.remove();openAnnoEl=null;} clearFlash(); }
+document.getElementById('stage').addEventListener('click', e=>{
+  if(e.target.closest('.run')||e.target.closest('.anno')||e.target.closest('#viewToggle')||e.target.closest('.tool')||e.target.closest('#swatch')||e.target.closest('#pScore')) return;
+  hideAnno();
+});
+document.getElementById('stage').addEventListener('scroll', hideAnno);
+
+/* ==================== 标记编辑弹层 ==================== */
+function openEditor(pid, mk, isNew){
+  editing={pid, id:mk.id, orig:{...mk}, isNew};
+  const m=paraMarks[pid].find(x=>x.id===mk.id);
+  const text=plainOf(pid).slice(m.start, m.end);
+  document.getElementById('emTitle').textContent = isNew?'新建标记':'编辑标记';
+  document.getElementById('emCite').textContent = text ? `「${text}」` : '（此位置补充信息 ∇）';
+  document.getElementById('emText').value = m.note||'';
+  renderShapeBtns(m.shape);
+  renderColorDots(m.shape, m.color);
+  document.getElementById('editModal').classList.add('show');
+}
+function plainOf(pid){ const p=document.querySelector(`p[data-pid="${pid}"]`); return [...p.querySelectorAll('.run')].map(r=>r.textContent).join(''); }
+function renderShapeBtns(cur){
+  document.getElementById('emShapes').innerHTML=SHAPES.map(s=>`<div class="mbtn${s.key===cur?' on':''}" data-shape="${s.key}"><span>${s.ic}</span>${s.lb}</div>`).join('');
+  document.querySelectorAll('#emShapes .mbtn').forEach(b=>{
+    b.onclick=()=>{ const sh=b.dataset.shape; renderShapeBtns(sh); renderColorDots(sh, PALETTES[sh][0]); editing._shape=sh; editing._color=PALETTES[sh][0]; };
+  });
+  editing._shape=cur;
+}
+function renderColorDots(shape, cur){
+  document.getElementById('emColors').innerHTML=PALETTES[shape].map(c=>`<div class="pdot${c===cur?' on':''}" data-c="${c}" style="background:${c}"></div>`).join('');
+  document.querySelectorAll('#emColors .pdot').forEach(d=>{
+    d.onclick=()=>{ renderColorDots(shape, d.dataset.c); editing._color=d.dataset.c; };
+  });
+  editing._color=cur;
+}
+document.getElementById('emOk').onclick=()=>{
+  const {pid, id, orig}=editing;
+  const m=paraMarks[pid].find(x=>x.id===id);
+  if(!editing.isNew) history.push({type:'modify', pid, id, prev:{...orig}});
+  m.shape=editing._shape; m.color=editing._color; m.note=document.getElementById('emText').value.trim();
+  closeEditor(); rerenderAndDraw();
+  hint('已保存');
+};
+document.getElementById('emCancel').onclick=()=>{
+  if(editing&&editing.isNew){
+    const {pid,id}=editing;
+    paraMarks[pid]=paraMarks[pid].filter(x=>x.id!==id);
+  }
+  closeEditor(); rerenderAndDraw();
+};
+document.getElementById('emDelete').onclick=()=>{
+  const {pid,id}=editing;
+  const m=paraMarks[pid].find(x=>x.id===id);
+  history.push({type:'delete', pid, snapshot:{...m}});
+  paraMarks[pid]=paraMarks[pid].filter(x=>x.id!==id);
+  closeEditor(); rerenderAndDraw(); hint('已删除标记');
+};
+function closeEditor(){ document.getElementById('editModal').classList.remove('show'); editing=null; }
+
+/* ==================== 撤销 ==================== */
+function undo(){
+  const h=history.pop();
+  if(!h){hint('没有可撤销的操作');return;}
+  if(h.type==='add'){ paraMarks[h.pid]=paraMarks[h.pid].filter(x=>!h.ids.includes(x.id)); }
+  else if(h.type==='delete'){ paraMarks[h.pid].push(h.snapshot); }
+  else if(h.type==='modify'){ const m=paraMarks[h.pid].find(x=>x.id===h.id); if(m){m.shape=h.prev.shape;m.color=h.prev.color;m.note=h.prev.note;} }
+  rerenderAndDraw(); hint('已撤销');
+}
+
+/* ==================== 总评 ==================== */
+function openSummary(){
+  // 阅读视角：只读展示
+  if(viewing){ renderSummaryReadonly(); return; }
+  renderSummaryEdit();
+}
+function renderSummaryReadonly(){
+  const s=DATA.summary, m=DATA.meta;
+  let html=`<h3>${m.title} · 总评</h3><div class="sub">得分预估 <b style="color:#c9992e">${m.score}</b>（${m.scoreNote}）</div>`;
+  html+=`<div class="dimlabel">五维评价</div><table class="sumtable">`;
+  s.dims.forEach(d=>html+=`<tr><td>${d.name}</td><td>${d.text}</td></tr>`);
+  html+=`</table><div class="dimlabel">核心问题（按优先级）</div><ol style="font-size:12px;line-height:1.8;padding-left:18px;margin:6px 0">`;
+  s.priority.forEach(p=>html+=`<li>${p}</li>`);
+  html+=`</ol><div class="dimlabel">背诵清单（错处 → 正确）</div><ul class="reclist">`;
+  DATA.recite.forEach(r=>html+=`<li><b>${r.wrong}</b> → <i>${r.right}</i></li>`);
+  html+=`</ul><div class="row"><button class="primary" onclick="document.getElementById('sumModal').classList.remove('show')">关闭</button></div>`;
+  document.getElementById('sumBox').innerHTML=html;
+  document.getElementById('sumModal').classList.add('show');
+}
+function renderSummaryEdit(){
+  const s=DATA.summary, m=DATA.meta;
+  let html=`<h3>${m.title} · 总评（可编辑）</h3>`;
+  html+=`<div class="dimlabel">得分预估</div>`;
+  html+=`<input class="sedit" id="seScore" value="${(m.score||'').replace(/"/g,'&quot;')}" placeholder="如 7 / 10" style="width:100%;box-sizing:border-box;font-size:14px;padding:6px 8px">`;
+  html+=`<div class="dimlabel">总评意见</div>`;
+  html+=`<textarea class="sedit" id="seNote" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${m.scoreNote||''}</textarea>`;
+
+  html+=`<div class="dimlabel">五维评价</div><div id="seDims">`;
+  s.dims.forEach((d,i)=>{
+    html+=`<div class="dimgroup"><input class="sedit sedim-name" data-i="${i}" value="${(d.name||'').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;font-size:12px;font-weight:700;padding:4px 6px">
+    <textarea class="sedit sedim-text" data-i="${i}" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;padding:4px 6px">${d.text||''}</textarea></div>`;
+  });
+  html+=`</div>`;
+
+  html+=`<div class="dimlabel">核心问题（按优先级，一行一条）</div>`;
+  html+=`<textarea class="sedit" id="sePriority" rows="4" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${(s.priority||[]).join('\n')}</textarea>`;
+
+  html+=`<div class="dimlabel">背诵清单（错处 → 正确，一行一条，用 “→” 分隔）</div>`;
+  html+=`<textarea class="sedit" id="seRecite" rows="4" style="width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px">${(DATA.recite||[]).map(r=>r.wrong+' → '+r.right).join('\n')}</textarea>`;
+
+  html+=`<div class="row"><button id="seCancel">取消</button><button class="primary" id="seSave">保存</button></div>`;
+  document.getElementById('sumBox').innerHTML=html;
+  document.getElementById('sumModal').classList.add('show');
+
+  document.getElementById('seCancel').onclick=()=>document.getElementById('sumModal').classList.remove('show');
+  document.getElementById('seSave').onclick=saveSummaryEdit;
+}
+function saveSummaryEdit(){
+  DATA.meta.score=document.getElementById('seScore').value.trim();
+  DATA.meta.scoreNote=document.getElementById('seNote').value.trim();
+  // dims
+  document.querySelectorAll('#seDims .sedim-name').forEach(inp=>{
+    const i=+inp.dataset.i; DATA.summary.dims[i].name=inp.value.trim();
+  });
+  document.querySelectorAll('#seDims .sedim-text').forEach(ta=>{
+    const i=+ta.dataset.i; DATA.summary.dims[i].text=ta.value.trim();
+  });
+  // priority（一行一条，去空行）
+  DATA.summary.priority=document.getElementById('sePriority').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  // recite（一行一条，按 → 拆）
+  DATA.recite=document.getElementById('seRecite').value.split('\n').map(x=>x.trim()).filter(Boolean).map(line=>{
+    const parts=line.split(/\s*→\s*/);
+    return {wrong:(parts[0]||'').trim(), right:(parts.slice(1).join(' → ')||'').trim()};
+  });
+  document.getElementById('sumModal').classList.remove('show');
+  rerenderAndDraw();
+  hint('已保存总评（记得导出 JSON 与我更新）');
+}
+
+/* ==================== 编辑原文（修转录错误） ==================== */
+function openTextEdit(){
+  let html=`<h3>编辑原文</h3><div class="sub">修改转录错误；保存后自动平移标记位置，请复核</div>`;
+  DATA.blocks.forEach((b,idx)=>{
+    const pid='p'+idx;
+    const plain=parsePara(b.text, pid).plain;
+    html+=`<div class="dimlabel">第 ${idx+1} 段（${b.type}）</div>`;
+    html+=`<textarea class="sedit tebox" data-i="${idx}" rows="3" style="width:100%;box-sizing:border-box;font-size:13px;padding:6px 8px">${plain}</textarea>`;
+  });
+  html+=`<div class="row"><button id="teCancel">取消</button><button class="primary" id="teSave">保存原文</button></div>`;
+  document.getElementById('teBox').innerHTML=html;
+  document.getElementById('textEditModal').classList.add('show');
+  document.getElementById('teCancel').onclick=()=>document.getElementById('textEditModal').classList.remove('show');
+  document.getElementById('teSave').onclick=saveTextEdit;
+}
+// 公共前缀长度
+function commonPrefix(a,b){ let i=0; const n=Math.min(a.length,b.length); while(i<n && a[i]===b[i]) i++; return i; }
+// 公共后缀长度（不与前缀重叠）
+function commonSuffix(a,b,pfx){ let i=0; const n=Math.min(a.length,b.length)-pfx; while(i<n && a[a.length-1-i]===b[b.length-1-i]) i++; return i; }
+function saveTextEdit(){
+  let moved=0, needCheck=0;
+  document.querySelectorAll('#teBox .tebox').forEach(ta=>{
+    const idx=+ta.dataset.i;
+    const pid='p'+idx;
+    const oldPlain=parsePara(DATA.blocks[idx].text, pid).plain;
+    const newPlain=ta.value;
+    if(oldPlain===newPlain) return;
+    const pfx=commonPrefix(oldPlain,newPlain);
+    const sfx=commonSuffix(oldPlain,newPlain,pfx);
+    const delta=newPlain.length-oldPlain.length;
+    const tailStart=oldPlain.length-sfx;  // 改动点 = [pfx, tailStart) 区间被替换
+    const arr=paraMarks[pid]||[];
+    arr.forEach(m=>{
+      if(m.end<=pfx){ /* 改动点之前：不动 */ }
+      else if(m.start>=tailStart){ m.start+=delta; m.end+=delta; moved++; }
+      else { needCheck++; } // 跨改动点：保留原位，提示复核
+    });
+    DATA.blocks[idx].text=newPlain;
+  });
+  document.getElementById('textEditModal').classList.remove('show');
+  rerenderAndDraw();
+  let msg='已保存原文';
+  if(moved) msg+=`，平移 ${moved} 个标记`;
+  if(needCheck) msg+=`；⚠️ ${needCheck} 个标记跨改动点，请复核`;
+  hint(msg);
+}
+document.getElementById('textEditModal').onclick=(e)=>{ if(e.target.id==='textEditModal') e.target.classList.remove('show'); };
+document.getElementById('sumModal').onclick=(e)=>{ if(e.target.id==='sumModal') e.target.classList.remove('show'); };
+document.getElementById('pickModal').onclick=(e)=>{ if(e.target.id==='pickModal') e.target.classList.remove('show'); };
+document.getElementById('pkCancel').onclick=closePicker;
+
+/* ==================== 工具：重绘 ==================== */
+/* ==================== 存取（localStorage + 导出/导入） ==================== */
+function paperKey(){ return 'wo-marks::'+(DATA&&DATA.meta&&DATA.meta.title||'default'); }
+// 导出：按段落 id 分组，只存标记数据
+function exportData(){
+  const marks={};
+  DATA.blocks.forEach((b,idx)=>{
+    const pid='p'+idx;
+    const arr=paraMarks[pid]||[];
+    if(arr.length) marks[pid]=arr.map(m=>({start:m.start,end:m.end,shape:m.shape,color:m.color,note:m.note}));
+  });
+  return {
+    tool:'writing-optimizer',
+    version:4,
+    paper:DATA.meta.title,
+    savedAt:new Date().toISOString(),
+    meta:{score:DATA.meta.score, scoreNote:DATA.meta.scoreNote},
+    summary:{dims:DATA.summary.dims, priority:DATA.summary.priority},
+    recite:DATA.recite,
+    blocks:DATA.blocks.map((b,idx)=>({type:b.type, id:'p'+idx, text:parsePara(b.text,'p'+idx).plain})),
+    marks,
+    ...(DATA.rev!==undefined?{rev:DATA.rev}:{}),
+    ...(DATA.model?{model:DATA.model}:{})
+  };
+}
+function saveLocal(){
+  if(viewing) return; // 阅读视角不写本地
+  try{ localStorage.setItem(paperKey(), JSON.stringify(exportData())); }catch(e){}
+}
+function loadLocal(){
+  try{
+    const raw=localStorage.getItem(paperKey());
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(!data.marks) return false;
+    // 版本守卫：若线上 app-data 带了 rev，且本地 rev 不一致 → 丢弃旧本地缓存
+    if(DATA.rev!==undefined && data.rev!==undefined && String(data.rev)!==String(DATA.rev)){
+      localStorage.removeItem(paperKey());
+      return false;
+    }
+    applyMarksData(data.marks);
+    applySummaryData(data);
+    return true;
+  }catch(e){ return false; }
+}
+// 把导出的总评数据套回 DATA（meta/summary/recite）
+function applySummaryData(data){
+  if(data.meta){
+    if(data.meta.score!==undefined) DATA.meta.score=data.meta.score;
+    if(data.meta.scoreNote!==undefined) DATA.meta.scoreNote=data.meta.scoreNote;
+  }
+  if(data.summary){
+    if(data.summary.dims) DATA.summary.dims=data.summary.dims;
+    if(data.summary.priority) DATA.summary.priority=data.summary.priority;
+  }
+  if(data.recite) DATA.recite=data.recite;
+  if(data.blocks) data.blocks.forEach((b,i)=>{ if(DATA.blocks[i]) DATA.blocks[i].text=b.text; });
+  if(data.model) DATA.model=data.model;
+}
+// 把导出的 marks 数据套回 paraMarks（按段落 id，重排 marks）
+function applyMarksData(marks){
+  Object.keys(marks).forEach(pid=>{
+    if(!paraMarks[pid]) paraMarks[pid]=[];
+    paraMarks[pid]=marks[pid].map(m=>({
+      id:'m'+(sid++), start:m.start, end:m.end,
+      shape:m.shape||'wave', color:m.color||DEF_COLOR[m.shape]||'#d3232f', note:m.note||''
+    }));
+  });
+}
+function downloadJSON(){
+  const data=exportData();
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  const safe=(DATA.meta.title||'marks').replace(/[^\w\u4e00-\u9fa5·-]+/g,'_');
+  a.href=URL.createObjectURL(blob);
+  a.download=safe+'.marks.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  hint('已导出标记 JSON（'+Object.values(data.marks).reduce((n,a)=>n+a.length,0)+' 条标记）');
+  // 兜底：某些内置浏览器/App 会拦截下载 → 同时给一个 Base64 复制框（纯 ASCII，复制不乱码）
+  showExportFallback(safe, json);
+}
+function showExportFallback(safe, json){
+  const b64=btoa(unescape(encodeURIComponent(json)));
+  let html=`<h3>导出 JSON</h3>`;
+  html+=`<div class="sub">已尝试下载 <b>${safe}.marks.json</b>。若你的浏览器/App 没有真的下载文件，请复制下方 Base64（纯英文数字，复制不会乱码）发给酸奶学姐即可。</div>`;
+  html+=`<div class="dimlabel">① 原始 JSON（可直接另存为 .json 文件）</div>`;
+  html+=`<textarea class="sedit" rows="4" readonly style="width:100%;box-sizing:border-box;font-size:11px;padding:6px 8px">${json.replace(/</g,'&lt;')}</textarea>`;
+  html+=`<div class="dimlabel">② Base64 兜底（复制这一段，最稳）</div>`;
+  html+=`<textarea class="sedit" id="teB64" rows="4" readonly style="width:100%;box-sizing:border-box;font-size:11px;padding:6px 8px">${b64}</textarea>`;
+  html+=`<div class="row"><button id="teCopyB64" class="primary">复制 Base64</button><button id="teClose">关闭</button></div>`;
+  document.getElementById('teBox').innerHTML=html;
+  document.getElementById('textEditModal').classList.add('show');
+  document.getElementById('teClose').onclick=()=>document.getElementById('textEditModal').classList.remove('show');
+  document.getElementById('teCopyB64').onclick=()=>{
+    const ta=document.getElementById('teB64'); ta.select(); ta.setSelectionRange(0,ta.value.length);
+    try{ document.execCommand('copy'); hint('已复制 Base64，粘贴发我即可'); }
+    catch(e){ hint('复制失败，请手动全选复制'); }
+  };
+}
+function importJSON(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(!data.marks) throw new Error('格式不对');
+      history.length=0;
+      Object.keys(paraMarks).forEach(pid=>paraMarks[pid]=[]);
+      applyMarksData(data.marks);
+      applySummaryData(data);
+      rerenderAndDraw();
+      hint('已导入 '+(Object.values(data.marks).reduce((n,a)=>n+a.length,0))+' 条标记'+(data.summary?'（含总评）':''));
+    }catch(e){ hint('导入失败：'+e.message); }
+  };
+  r.readAsText(file);
+}
+function clearLocal(){
+  if(!confirm('确定清空本地暂存的标记？（页面将恢复到线上版本）')) return;
+  try{ localStorage.removeItem(paperKey()); }catch(e){}
+  location.reload();
+}
+
+function rerenderAndDraw(){ render(); saveLocal(); }
+var _t=null;
+function hint(msg){ const h=document.getElementById('hint'); h.textContent=msg; h.classList.add('show'); clearTimeout(_t); _t=setTimeout(()=>h.classList.remove('show'),1900); }
+
+/* ==================== 视角切换 ==================== */
+document.getElementById('viewToggle').onclick=()=>{
+  viewing=!viewing; if(viewing){activeShape=null;hideAnno();}
+  render(); hint(viewing?'已进入阅读视角（受众）':'已进入编辑视角（批注者）');
+};
+window.addEventListener('resize', ()=>{requestAnimationFrame(drawOverlays);positionToggle();});
+// 底部居中按钮：编辑态避开右侧工具栏（62px），阅读态整宽居中
+function positionToggle(){
+  const viewingNow=document.body.classList.contains('viewing');
+  const shift=viewingNow?'0px':'-31px'; // 工具栏半宽
+  document.documentElement.style.setProperty('--vt-shift', shift);
+}
+
+/* ==================== 启动 ==================== */
+const QS=new URLSearchParams(location.search);
+function boot(j){
+  DATA=j;
+  if(QS.get('mode')==='view'){ viewing=true; document.body.classList.add('locked'); }
+  render();
+  // 读取本地暂存的标记（编辑与阅读视角都生效）
+  restoredFromLocal=loadLocal();
+  if(restoredFromLocal){ rerender_afterLoad(); }
+  if(!viewing){
+    if(restoredFromLocal) hint('已恢复本地暂存的标记（未上线）');
+    else hint('选工具→点词标记；点已标记处可改');
+  }
+}
+function rerender_afterLoad(){ render(); buildTools(); }
+document.getElementById('fileInput').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(f) importJSON(f);
+  e.target.value='';
+});
+boot(JSON.parse(document.getElementById('app-data').textContent));
+
+</script>
+</body>
+</html>
